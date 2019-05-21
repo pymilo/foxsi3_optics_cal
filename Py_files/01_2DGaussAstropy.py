@@ -5,7 +5,7 @@ Script that plot a 2D Gaussian using astropy function
 
 Run on terminal: ipython 01_2DGaussAstropy.py
 
-Output: 2D Gauss + radom noise plot on a 3D projection
+Output: Pure 2D Gauss plot on a 3D projection
 
 Date: May, 2019
 Author: Milo

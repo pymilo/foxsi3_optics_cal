@@ -10,3 +10,5 @@
 
 ## May-21
 
+Created 00, 01, and 02 files that play with 2D gaussians and fit them. 
+

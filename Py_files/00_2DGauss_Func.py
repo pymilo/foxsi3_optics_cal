@@ -3,9 +3,9 @@
 Simple function that defines and plot a 2D gaussian
 ---------------------------------------------------
 
-Run on terminal: ipython 2DGauss_Func.py
+Run on terminal: ipython 00_2DGauss_Func.py
 
-Output: 2D Gauss + radom noise plot on a 3D projection
+Output: Plot 2D Gauss + radom noise plot on a 3D projection
 
 Date: May, 2019
 Author: Milo

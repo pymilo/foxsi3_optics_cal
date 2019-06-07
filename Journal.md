@@ -45,13 +45,15 @@ This is another good excuse to have clear and concrete Py files.
 2D Gauss fits
 Data fit
 
-# 02 June 2019
+# 03 June 2019
 
 * Following Steven's advice, I organized the current notebook to make it more understanble. I also moved the PY files to a folder called: "00_Explore_2D_Gaussians_Functions_Fits" which contains simple examples of fitting 2D Gaussians.
 
 * Next step: Make a journey path for calibrating the data.
 
 * Make a notebbok and PY-files that work with real data obtained at Marshall.
+
+# 05 June 2013
 
 
 

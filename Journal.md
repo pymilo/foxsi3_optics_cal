@@ -53,7 +53,12 @@ Data fit
 
 * Make a notebbok and PY-files that work with real data obtained at Marshall.
 
-# 05 June 2013
+# 13 June 2013
+
+## Steven meeting
+
+* Replace NDCube Astropy CCDdata: This is  
+* 
 
 
 

@@ -60,9 +60,8 @@ Data fit
 * Move the work we did with Steve to an organized notebook.
 * Add another gaussian, also add offset
 * Define the FWHM function
-* Include the FWHM as a funtion of the azimutal angle.
-* Plot the FWHM as a funtion of the azimutal angle.
-* include also the HPD.
+* Include the FWHM as a funtion of the azimutal angle. Plot it.
+* include also the HPD. Plot it. 
 
 
 

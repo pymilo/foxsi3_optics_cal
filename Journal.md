@@ -57,8 +57,14 @@ Data fit
 
 ## Steven meeting
 
-* Replace NDCube Astropy CCDdata: This is  
-* 
+* Move the work we did with Steve to an organized notebook.
+* Add another gaussian, also add offset
+* Define the FWHM function
+* Include the FWHM as a funtion of the azimutal angle.
+* Plot the FWHM as a funtion of the azimutal angle.
+* include also the HPD.
+
+
 
 
 

@@ -61,7 +61,9 @@ Data fit
 * Add another gaussian, also add offset
 * Define the FWHM function
 * Include the FWHM as a funtion of the azimutal angle. Plot it.
-* include also the HPD. Plot it. 
+* include also the HPD. Plot it.
+
+I need to work of the HPD and the bleeding.
 
 
 

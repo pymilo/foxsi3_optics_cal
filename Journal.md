@@ -63,7 +63,10 @@ Data fit
 * Include the FWHM as a funtion of the azimutal angle. Plot it.
 * include also the HPD. Plot it.
 
-I need to work of the HPD and the bleeding.
+# 25 June 2013
+
+* Work on the HPD Function.
+* I need to work of the HPD and the bleeding.
 
 
 

@@ -63,7 +63,7 @@ Data fit
 * Include the FWHM as a funtion of the azimutal angle. Plot it.
 * include also the HPD. Plot it.
 
-# 26 June 2013
+# 26 June 2019
 
 
 * Create One, Two and Three (Done) Gaussians fit. Outcomes: Actual Data, Fit and Differences. Include Chi-Square errors also. 
@@ -71,7 +71,11 @@ Data fit
 * I need to work of the HPD and the bleeding.
 * Send email!
 
+# July 23, 2019
 
+* I was attending several conferences, one summer school and I was very sick last few weeks. Only today I'm fully functional to resume my work.
+
+* Split Notebooks into smaller pieces. Each section needs to be one individual Notebook. 
 
 
 

@@ -8,15 +8,15 @@ Goal: To fit Three 2D gaussians to the FOXSI3 SLF data corrected by darks.
 Input:  1. Fits file with SLF Data taken with the Andor CCD Camera.
         2. Dark fits files for correction.
 
-Run on terminal: ipython 01_fit_three_2D_Gaussians.py
+Run on terminal: ipython 02_fit_three_2D_Gaussians.py
 
 Output:
-            1. Flat plots of the three 2D gaussians in Log scale.
-            2. 3D plots of the three 2D gaussians.
+            1. Flat plots of the three 2D-Gaussians in Log scale.
+            2. 3D plots of the three 2D-Gaussians.
             3. Plot of the difference Data vs. Fit in log scale.
-            4. Print out the amplitud ratios for the three 2D-Gaussians and the offset.
+            4. Print out the parameters for the three 2D-Gaussians and the offset.
 
-Date: Jun, 2019
+Date: Aug, 2019
 Author: Milo
 UC-Berkeley
 '''
@@ -46,7 +46,7 @@ folder = '/Users/Kamilobu/Desktop/Developer/foxsi3_optics_cal/data/'
 filename = 'kFOXSI3_X10-Test_CCD_T2Sx6_10kV_0p02mA_0mmZ.fits'  ## name of your data fits file.
 darkfilename = 'Dark1_FOXSI3_X10-Test_CCD_T2Sx6_10kV_0p02mA_+15mmZ.fits'  ## name of your darks fits file.
 ## These are fits files containing six frames each of 1024x1024 pixels taken at the SLF
-## using the Andor camera and the Mo X-ray source. Voltages,Currents and Integration Times are 
+## using the Andor camera and the Mo X-ray source. Voltages,Currents and Integration Times are
 ## indicated over the names of the files.
 
 ## Read fits files using astropy.io.fits
@@ -108,12 +108,12 @@ Xg, Yg = np.mgrid[0:datacube.data.shape[0], 0:datacube.data.shape[1]]
 ''' Fit Three 2D-Gaussians '''
 ## Initial Guess :
 ThreeG_guess = ThreeGaussians(x_mean=max_pixel[0], y_mean=max_pixel[1], theta=0,
-                          amp1=0.65*np.max(datacube.data),
-                          amp2 = 0.25*np.max(datacube.data),
-                          amp3 = 0.09*np.max(datacube.data),
-                          x1_stddev=2, y1_stddev=2,
-                          x2_stddev=2, y2_stddev=2,
-                          x3_stddev=2, y3_stddev=2,offset=0)
+                          amp1=0.10111*np.max(datacube.data),
+                          amp2 = 0.57882*np.max(datacube.data),
+                          amp3 = 0.32008*np.max(datacube.data),
+                          x1_stddev=5.0171, y1_stddev=4.0530,
+                          x2_stddev=0.6243, y2_stddev=1.2561,
+                          x3_stddev=1.5351, y3_stddev=2.2241,offset=0)
 
 ## Finding best fit:
 fit2DG = fitting.LevMarLSQFitter()
@@ -121,19 +121,29 @@ ThreeG_out = fit2DG(ThreeG_guess, Xg, Yg, datacube.data, maxiter=320) ## maxiter
 Zout = ThreeG_out(Xg, Yg)
 
 ## Individual Gaussian Functions:
-g1 = models.Gaussian2D(ThreeG_out.amp1.value, ThreeG_out.x_mean.value, 
-                       ThreeG_out.y_mean.value, ThreeG_out.x1_stddev.value, 
+g1 = models.Gaussian2D(ThreeG_out.amp1.value, ThreeG_out.x_mean.value,
+                       ThreeG_out.y_mean.value, ThreeG_out.x1_stddev.value,
                        ThreeG_out.y1_stddev.value, ThreeG_out.theta.value)
-g2 = models.Gaussian2D(ThreeG_out.amp2.value, ThreeG_out.x_mean.value, 
-                       ThreeG_out.y_mean.value, ThreeG_out.x2_stddev.value, 
+g2 = models.Gaussian2D(ThreeG_out.amp2.value, ThreeG_out.x_mean.value,
+                       ThreeG_out.y_mean.value, ThreeG_out.x2_stddev.value,
                        ThreeG_out.y2_stddev.value, ThreeG_out.theta.value)
-g3 = models.Gaussian2D(ThreeG_out.amp3.value, ThreeG_out.x_mean.value, 
-                       ThreeG_out.y_mean.value, ThreeG_out.x3_stddev.value, 
+g3 = models.Gaussian2D(ThreeG_out.amp3.value, ThreeG_out.x_mean.value,
+                       ThreeG_out.y_mean.value, ThreeG_out.x3_stddev.value,
                        ThreeG_out.y3_stddev.value, ThreeG_out.theta.value)
 ### Individual Gaussian Arrays:
 G1 = g1(Xg, Yg)
 G2 = g2(Xg, Yg)
 G3 = g3(Xg, Yg)
+
+''' R^2 function definition '''
+## More info: https://en.wikipedia.org/wiki/Coefficient_of_determination
+def RSquared(data,model):
+    ## The closest to 1, the better is the fit.
+    ss_err=(model.fit_info['fvec']**2).sum()
+    ss_tot=((data-data.mean())**2).sum()
+    return 1-(ss_err/ss_tot)
+''' Estimate R^2 '''
+RS3G = RSquared(data, fit2DG)
 
 ''' Plot Flat Fitted Gaussians  '''
 # Create ImageNormalize objects:
@@ -173,12 +183,26 @@ ax4.set_title('2D-Gaussian Three - Log scale',fontsize=14)
 plt.show()
 
 ''' Print what the amplitud ratios are '''
-print('The amplitud ratios for the three 2D-Gaussians are: A1 = {0}, A2 = {1}, and {2}.'
-      .format(ThreeG_out.amp1.value/(ThreeG_out.amp1.value+ThreeG_out.amp2.value+ThreeG_out.amp3.value),
-              ThreeG_out.amp2.value/(ThreeG_out.amp1.value+ThreeG_out.amp2.value+ThreeG_out.amp3.value),
-              ThreeG_out.amp3.value/(ThreeG_out.amp1.value+ThreeG_out.amp2.value+ThreeG_out.amp3.value),
+print('The amplitud ratios for the guessed three 2D-Gaussians are: A1 = {0:.5f}, A2 = {1:.5f}, and {2:.5f}.'
+      .format(round(ThreeG_guess.amp1.value/(ThreeG_guess.amp1.value+ThreeG_guess.amp2.value+ThreeG_guess.amp3.value),5),
+              round(ThreeG_guess.amp2.value/(ThreeG_guess.amp1.value+ThreeG_guess.amp2.value+ThreeG_guess.amp3.value),5),
+              round(ThreeG_guess.amp3.value/(ThreeG_guess.amp1.value+ThreeG_guess.amp2.value+ThreeG_guess.amp3.value),5),
        ))
-print('Offset = {0}'.format(ThreeG_out.offset.value))
+print('The amplitud ratios for the three 2D-Gaussians are: A1 = {0:.5f}, A2 = {1:.5f}, and {2:.5f}.'
+      .format(round(ThreeG_out.amp1.value/(ThreeG_out.amp1.value+ThreeG_out.amp2.value+ThreeG_out.amp3.value),5),
+              round(ThreeG_out.amp2.value/(ThreeG_out.amp1.value+ThreeG_out.amp2.value+ThreeG_out.amp3.value),5),
+              round(ThreeG_out.amp3.value/(ThreeG_out.amp1.value+ThreeG_out.amp2.value+ThreeG_out.amp3.value),5),
+       ))
+print('The standard deviation for the three 2D-Gaussians are: S1x = {0:.5f}, S1y = {1:.5f}, S2x = {2:.5f}, S2y = {3:.5f}, S3x = {4:.5f}, and S3y = {5:.5f}.'
+      .format(round(ThreeG_out.x1_stddev.value,5),
+              round(ThreeG_out.y1_stddev.value,5),
+              round(ThreeG_out.x2_stddev.value,5),
+              round(ThreeG_out.y2_stddev.value,5),
+              round(ThreeG_out.x3_stddev.value,5),
+              round(ThreeG_out.y3_stddev.value,5),
+       ))
+print('Offset = {0:.5f}'.format(round(ThreeG_out.offset.value,5)))
+print('$R^2$ for three gaussians is {0:.5f}'.format(round(RS3G,5)))
 
 ''' Plot  3D Fitted Gaussians '''
 
@@ -208,9 +232,11 @@ ax4.set_zlim3d(0, sZout.max())
 plt.show()
 
 ''' Plot Difference Data vs Fit '''
+diff = (datacube.data-Zout)
+diffmax = (np.array(diff.max(),-diff.min())).max()
 fov = [15,15]
 fig, ax1 = plt.subplots(figsize=(6,6),subplot_kw=dict(projection=datacube.wcs))
-im1 = ax1.imshow(datacube.data-Zout, origin='lower', cmap=plt.cm.bwr_r)
+im1 = ax1.imshow(diff, origin='lower', cmap=plt.cm.bwr_r,vmin=-diffmax,vmax=diffmax)
 cbar1 = fig.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
 ax1.set_xlim(max_pixel[1]-fov[1], max_pixel[1]+fov[1])
 ax1.set_ylim(max_pixel[0]-fov[0], max_pixel[0]+fov[0])

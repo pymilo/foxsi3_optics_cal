@@ -13,19 +13,19 @@ Comment:
             +& A_3\exp[-(x-x_0)^2/2\sigma_{x_3}^2 - (y-y_0)^2/2\sigma_{y_3}^2] + Const\nonumber
         $$
 
-    So, the Full Width at Half Maximum is defined when $z(x,y)=(A_1+A_2+A_3)/2$. This equation is not 
-    analitically solvable for y. 
+    So, the Full Width at Half Maximum is defined when $z(x,y)=(A_1+A_2+A_3)/2$. This equation is not
+    analitically solvable for y.
 
 Input:  1. Fits file with SLF Data taken with the Andor CCD Camera.
         2. Dark fits files for correction.
 
-Run on terminal: ipython 02_FWHM_vs_AzimuthalAngle.py
+Run on terminal: ipython 03_FWHM_vs_AzimuthalAngle.py
 
 Output:
             1. Map of the Three 2D-Gaussians with the FWHM on top.
             2. Plot of the FWHM vs Azimuthal Angle.
             3. Print out the average over the azimuthal angle of the FWHM.
-            
+
 Date: Jun, 2019
 Author: Milo
 UC-Berkeley
@@ -58,7 +58,7 @@ folder = '/Users/Kamilobu/Desktop/Developer/foxsi3_optics_cal/data/'
 filename = 'kFOXSI3_X10-Test_CCD_T2Sx6_10kV_0p02mA_0mmZ.fits'  ## name of your data fits file.
 darkfilename = 'Dark1_FOXSI3_X10-Test_CCD_T2Sx6_10kV_0p02mA_+15mmZ.fits'  ## name of your darks fits file.
 ## These are fits files containing six frames each of 1024x1024 pixels taken at the SLF
-## using the Andor camera and the Mo X-ray source. Voltages,Currents and Integration Times are 
+## using the Andor camera and the Mo X-ray source. Voltages,Currents and Integration Times are
 ## indicated over the names of the files.
 
 ## Read fits files using astropy.io.fits
@@ -137,9 +137,9 @@ Zout = ThreeG_out(Xg, Yg)
 def x_fwhm_minmax(G3):
     factor = 4*np.sqrt(2*np.log(2))*(G3.x1_stddev+
                                      G3.x2_stddev+G3.x3_stddev)
-    x_fwhm_min = brentq(G3,G3.x_mean.value-factor, 
+    x_fwhm_min = brentq(G3,G3.x_mean.value-factor,
                             G3.x_mean.value,args=(G3.y_mean.value))
-    x_fwhm_max = brentq(G3,G3.x_mean.value, 
+    x_fwhm_max = brentq(G3,G3.x_mean.value,
                             G3.x_mean.value+factor,args=(G3.y_mean.value))
     return(x_fwhm_min,x_fwhm_max)
 
@@ -150,10 +150,10 @@ def G3y(y,x,G3): ## Flip argument order. Needed to find zeros on y-axis.
 def find_fwhm(G3,x): ## Input should be a 3-2D-Gaussian Function. e.g. ThreeG_out
     factor = 4*np.sqrt(2*np.log(2))*(G3.y1_stddev+
                                      G3.y2_stddev+G3.y3_stddev)
-    y_fwhm_down = brentq(G3y,G3.y_mean.value-factor, 
-                            G3.y_mean.value,args=(x,G3))    
-    y_fwhm_up = brentq(G3y,G3.y_mean.value, 
-                            G3.y_mean.value+factor,args=(x,G3))    
+    y_fwhm_down = brentq(G3y,G3.y_mean.value-factor,
+                            G3.y_mean.value,args=(x,G3))
+    y_fwhm_up = brentq(G3y,G3.y_mean.value,
+                            G3.y_mean.value+factor,args=(x,G3))
     return (y_fwhm_down,y_fwhm_up)
 
 maximum = ThreeG_out.amp1.value \
@@ -163,9 +163,9 @@ half_maximum = 0.5 * maximum
 ThreeG_out.offset -= half_maximum
 
 npoints = 50
-x_fwhm = ThreeG_out.x_mean+(ThreeG_out.x_mean - 
+x_fwhm = ThreeG_out.x_mean+(ThreeG_out.x_mean -
                    x_fwhm_minmax(ThreeG_out)[0]-1e-3)*np.sin((np.pi/2)*np.linspace(-1,1,npoints))
-y_fwhm_up_l,y_fwhm_down_l = [],[] 
+y_fwhm_up_l,y_fwhm_down_l = [],[]
 for x in x_fwhm:
     y_fwhm = find_fwhm(ThreeG_out,x)
     y_fwhm_down_l.append(y_fwhm[0])
@@ -208,4 +208,3 @@ ax.set_rticks([6, 6.5, 7, 7.5, 8])
 ax.set_title("FWHM vs. azimuthal angle",fontsize=20)
 plt.show()
 print('The average FWHM over the azimuthal angle is {0} arcsecs.'.format(round(2*r.mean()*plate_scale.value,4)))
-

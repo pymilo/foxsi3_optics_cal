@@ -57,6 +57,9 @@ print('Darks shape : '+str(darkfits[0].data.shape))
 
 ## Create data array corrected by darks:
 data = np.average(fits[0].data, axis=0) - np.average(darkfits[0].data, axis=0)
+max_pixel = np.unravel_index(np.argmax(data), data.shape)
+fov = [20, 20] ## [px,px]
+sdata = data[max_pixel[0]-fov[0]:max_pixel[0]+fov[0],max_pixel[1]-fov[1]:max_pixel[1]+fov[1]]/data.max()
 
 ''' Create the WCS information '''
 wcs_dict = {
@@ -70,13 +73,13 @@ wcs_dict = {
     'CRPIX2':0,
     'CRVAL1': 0,
     'CRVAL2': 0,
-    'NAXIS1': data.shape[0],
-    'NAXIS2': data.shape[1]
+    'NAXIS1': sdata.shape[0],
+    'NAXIS2': sdata.shape[1]
 }
 input_wcs = wcs.WCS(wcs_dict)
 
 ''' Create NDCube '''
-datacube = NDCube(data, input_wcs)
+datacube = NDCube(sdata, input_wcs)
 max_pixel = np.unravel_index(np.argmax(datacube.data), datacube.data.shape)
 fov = [20, 20] ## [px,px]
 
@@ -92,13 +95,9 @@ fig.subplots_adjust(wspace = 0.4)
 ## Linear Scale:
 im1 = ax1.imshow(datacube.data, origin='lower', cmap=plt.cm.viridis, norm=normLin)
 cbar1 = fig.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
-ax1.set_xlim(max_pixel[1]-fov[1], max_pixel[1]+fov[1])
-ax1.set_ylim(max_pixel[0]-fov[0], max_pixel[0]+fov[0])
 ax1.set_title('FOXSI3 - SLF Data Linear Color scale [on-axis]',fontsize=12)
 ## Log Scale:
 im2 = ax2.imshow(datacube.data, origin='lower', cmap=plt.cm.viridis, norm=normLog)
 cbar2 = fig.colorbar(im2, ax=ax2, fraction=0.046, pad=0.04)
-ax2.set_xlim(max_pixel[1]-fov[1], max_pixel[1]+fov[1])
-ax2.set_ylim(max_pixel[0]-fov[0], max_pixel[0]+fov[0])
 ax2.set_title('FOXSI3 - SLF Data Log Color scale [on-axis]',fontsize=12)
 plt.show()

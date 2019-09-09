@@ -16,7 +16,7 @@ Output:
             3. Plot of the difference Data vs. Fit in log scale.
             4. Print out the parameters for the three 2D-Gaussians and the offset.
 
-Date: Aug, 2019
+Date: Sep, 2019
 Author: Milo
 UC-Berkeley
 '''
@@ -31,6 +31,7 @@ import astropy.units as u
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+import scipy.stats
 
 ## Workspace:
 ''' Plate scale '''
@@ -55,6 +56,10 @@ darkfits = pyfits.open(folder+darkfilename)
 
 ## Create data array corrected by darks:
 data = np.average(fits[0].data, axis=0) - np.average(darkfits[0].data, axis=0)
+smax_pixel = np.unravel_index(np.argmax(data), data.shape)
+fov = [20, 20] ## [px,px]
+sdata = data[smax_pixel[0]-fov[0]:smax_pixel[0]+fov[0],smax_pixel[1]-fov[1]:smax_pixel[1]+fov[1]]/data.max()
+max_pixel = np.unravel_index(np.argmax(sdata), sdata.shape)
 
 ''' Create the WCS information '''
 wcs_dict = {
@@ -68,15 +73,13 @@ wcs_dict = {
     'CRPIX2':0,
     'CRVAL1': 0,
     'CRVAL2': 0,
-    'NAXIS1': data.shape[0],
-    'NAXIS2': data.shape[1]
+    'NAXIS1': sdata.shape[0],
+    'NAXIS2': sdata.shape[1]
 }
 input_wcs = wcs.WCS(wcs_dict)
 
 ''' Create NDCube '''
-datacube = NDCube(data, input_wcs)
-max_pixel = np.unravel_index(np.argmax(datacube.data), datacube.data.shape)
-fov = [20, 20] ## [px,px]
+datacube = NDCube(sdata, input_wcs)
 
 ''' Definition of Two 2D-Gaussians function '''
 @models.custom_model
@@ -143,7 +146,9 @@ def RSquared(data,model):
     ss_tot=((data-data.mean())**2).sum()
     return 1-(ss_err/ss_tot)
 ''' Estimate R^2 '''
-RS3G = RSquared(data, fit2DG)
+RS3G = RSquared(datacube.data, fit2DG)
+'''  Chi Square '''
+chisq = scipy.stats.chisquare(datacube.data[np.abs(Zout) >= 1e-15], f_exp=Zout[np.abs(Zout) >= 1e-15])
 
 ''' Plot Flat Fitted Gaussians  '''
 # Create ImageNormalize objects:
@@ -203,6 +208,7 @@ print('The standard deviation for the three 2D-Gaussians are: S1x = {0:.5f}, S1y
        ))
 print('Offset = {0:.5f}'.format(round(ThreeG_out.offset.value,5)))
 print('$R^2$ for three gaussians is {0:.5f}'.format(round(RS3G,5)))
+print('$chi^2$ for three gaussians is {0:.5f}'.format(round(chisq[0],5)))
 
 ''' Plot  3D Fitted Gaussians '''
 

@@ -67,6 +67,10 @@ darkfits = pyfits.open(folder+darkfilename)
 
 ## Create data array corrected by darks:
 data = np.average(fits[0].data, axis=0) - np.average(darkfits[0].data, axis=0)
+smax_pixel = np.unravel_index(np.argmax(data), data.shape)
+fov = [20, 20] ## [px,px]
+sdata = data[smax_pixel[0]-fov[0]:smax_pixel[0]+fov[0],smax_pixel[1]-fov[1]:smax_pixel[1]+fov[1]]/data.max()
+max_pixel = np.unravel_index(np.argmax(sdata), sdata.shape)
 
 ''' Create the WCS information '''
 wcs_dict = {
@@ -80,15 +84,13 @@ wcs_dict = {
     'CRPIX2':0,
     'CRVAL1': 0,
     'CRVAL2': 0,
-    'NAXIS1': data.shape[0],
-    'NAXIS2': data.shape[1]
+    'NAXIS1': sdata.shape[0],
+    'NAXIS2': sdata.shape[1]
 }
 input_wcs = wcs.WCS(wcs_dict)
 
 ''' Create NDCube '''
-datacube = NDCube(data, input_wcs)
-max_pixel = np.unravel_index(np.argmax(datacube.data), datacube.data.shape)
-fov = [20, 20] ## [px,px]
+datacube = NDCube(sdata, input_wcs)
 
 ''' Definition of Two 2D-Gaussians function '''
 @models.custom_model
@@ -134,37 +136,39 @@ Zout = ThreeG_out(Xg, Yg)
 
 ''' Estimate of the FWHM on X&Y '''
 
-def x_fwhm_minmax(G3):
-    factor = 4*np.sqrt(2*np.log(2))*(G3.x1_stddev+
-                                     G3.x2_stddev+G3.x3_stddev)
-    x_fwhm_min = brentq(G3,G3.x_mean.value-factor,
-                            G3.x_mean.value,args=(G3.y_mean.value))
-    x_fwhm_max = brentq(G3,G3.x_mean.value,
-                            G3.x_mean.value+factor,args=(G3.y_mean.value))
-    return(x_fwhm_min,x_fwhm_max)
+def x_fwhm_minmax(mask,Xt):
+    xrange = []
+    for xi in range (0,len(Xt)):
+        if (mask[xi,:].any()==True):
+            xrange.append(Xt[xi,0])
+    return(xrange[0],xrange[-1])
 
 def G3y(y,x,G3): ## Flip argument order. Needed to find zeros on y-axis.
     return G3(x,y)
-
-''' Find the FWHM '''
-def find_fwhm(G3,x): ## Input should be a 3-2D-Gaussian Function. e.g. ThreeG_out
-    factor = 4*np.sqrt(2*np.log(2))*(G3.y1_stddev+
-                                     G3.y2_stddev+G3.y3_stddev)
-    y_fwhm_down = brentq(G3y,G3.y_mean.value-factor,
-                            G3.y_mean.value,args=(x,G3))
-    y_fwhm_up = brentq(G3y,G3.y_mean.value,
-                            G3.y_mean.value+factor,args=(x,G3))
-    return (y_fwhm_down,y_fwhm_up)
-
 maximum = ThreeG_out.amp1.value \
             + ThreeG_out.amp2.value \
             + ThreeG_out.amp3.value
 half_maximum = 0.5 * maximum
-ThreeG_out.offset -= half_maximum
+''' Find the FWHM '''
+def find_fwhm(G3,x): ## Input should be a 3-2D-Gaussian Function. e.g. ThreeG_out
+    factor = 4*np.sqrt(2*np.log(2))*(G3.y1_stddev+
+                                     G3.y2_stddev+G3.y3_stddev)
+    steps = 0.5
+    ymax = steps*np.argmax([ThreeG_out(x,yi) for yi in np.arange(0,len(datacube.data),steps)])
+    y_fwhm_down = brentq(G3y,ymax-factor,ymax,args=(x,G3))
+    y_fwhm_up = brentq(G3y,ymax,ymax+factor,args=(x,G3))
+    return (y_fwhm_down,y_fwhm_up)
 
+ThreeG_out.offset -= half_maximum
 npoints = 50
+
+## Needed to determine the size of the FWHM:
+steps = 1000j
+Xt, Yt = np.mgrid[0:datacube.data.shape[0]:steps, 0:datacube.data.shape[1]:steps]
+ZoutHR = ThreeG_out(Xt,Yt) ## increasing the resolution of Zout
+mask = np.greater(ZoutHR,0)
 x_fwhm = ThreeG_out.x_mean+(ThreeG_out.x_mean -
-                   x_fwhm_minmax(ThreeG_out)[0]-1e-3)*np.sin((np.pi/2)*np.linspace(-1,1,npoints))
+                   x_fwhm_minmax(mask,Xt)[0])*np.sin((np.pi/2)*np.linspace(-1,1,npoints))
 y_fwhm_up_l,y_fwhm_down_l = [],[]
 for x in x_fwhm:
     y_fwhm = find_fwhm(ThreeG_out,x)
@@ -172,7 +176,6 @@ for x in x_fwhm:
     y_fwhm_up_l.append(y_fwhm[1])
 y_fwhm_down = np.array(y_fwhm_down_l)
 y_fwhm_up = np.array(y_fwhm_up_l)
-
 ThreeG_out.offset += half_maximum
 
 ''' Plotting a Map of the FWHM '''
@@ -183,13 +186,17 @@ normLogT = ImageNormalize(Zout, interval=MinMaxInterval(),stretch=LogStretch())
 fig, ax1 = plt.subplots(figsize=(5,5),subplot_kw=dict(projection=datacube.wcs))
 fig.subplots_adjust(wspace = 0.4) ## Sets space between subplots to avoid overlap
 ## Best fit of the all three gaussians:
-im1 = ax1.imshow(Zout, origin='lower', cmap=plt.cm.viridis,norm=normLogT)
+im1 = ax1.imshow(Zout.T, origin='lower', cmap=plt.cm.viridis,norm=normLogT)
 cbar1 = fig.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
 ax1.set_xlim(max_pixel[1]-fov[1], max_pixel[1]+fov[1])
 ax1.set_ylim(max_pixel[0]-fov[0], max_pixel[0]+fov[0])
 ax1.set_title('Three 2D-GaussFit Log scale',fontsize=14)
-ax1.scatter(y_fwhm_up,x_fwhm,color='white')
-ax1.scatter(y_fwhm_down,x_fwhm,color='white')
+ax1.scatter(x_fwhm,y_fwhm_up,color='white')
+ax1.scatter(x_fwhm,y_fwhm_down,color='white')
+ax1.set_xlim(15,25)
+ax1.set_ylim(15,25)
+levels = np.array([.5*Zout.max()]) ## Set level at half the maximum
+CFWHM = ax1.contour(Zout.T, levels) ## Generate contour
 plt.show()
 
 r_up = np.sqrt((x_fwhm-ThreeG_out.x_mean)**2 + (y_fwhm_up-ThreeG_out.y_mean)**2)
@@ -202,9 +209,8 @@ phi = np.concatenate((phi_up,phi_down))
 ## Polar Plot:
 fig, ax = plt.subplots(figsize=(5,5),subplot_kw=dict(projection='polar'))
 ax.plot(phi, 2*r*plate_scale,'o')
-ax.set_rmax(8)
-ax.set_rmin(6)
-ax.set_rticks([6, 6.5, 7, 7.5, 8])
+ax.set_rmax(15)
+ax.set_rmin(3)
 ax.set_title("FWHM vs. azimuthal angle",fontsize=20)
 plt.show()
 print('The average FWHM over the azimuthal angle is {0} arcsecs.'.format(round(2*r.mean()*plate_scale.value,4)))

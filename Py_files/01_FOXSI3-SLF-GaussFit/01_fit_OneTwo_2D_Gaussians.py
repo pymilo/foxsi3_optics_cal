@@ -20,7 +20,7 @@ Output:
             7. Plot of the difference Data vs. Fit in log scale for Two 2D-Gaussians.
             8. Print out the parameters for the Two 2D-Gaussians and the offset.
 
-Date: Aug, 2019
+Date: Sep, 2019
 Author: Milo
 UC-Berkeley
 '''
@@ -35,6 +35,7 @@ import astropy.units as u
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+import scipy.stats
 
 ## Workspace:
 ''' R^2 function definition '''
@@ -67,6 +68,10 @@ darkfits = pyfits.open(folder+darkfilename)
 
 ## Create data array corrected by darks:
 data = np.average(fits[0].data, axis=0) - np.average(darkfits[0].data, axis=0)
+smax_pixel = np.unravel_index(np.argmax(data), data.shape)
+fov = [20, 20] ## [px,px]
+sdata = data[smax_pixel[0]-fov[0]:smax_pixel[0]+fov[0],smax_pixel[1]-fov[1]:smax_pixel[1]+fov[1]]/data.max()
+max_pixel = np.unravel_index(np.argmax(sdata), sdata.shape)
 
 ''' Create the WCS information '''
 wcs_dict = {
@@ -80,15 +85,13 @@ wcs_dict = {
     'CRPIX2':0,
     'CRVAL1': 0,
     'CRVAL2': 0,
-    'NAXIS1': data.shape[0],
-    'NAXIS2': data.shape[1]
+    'NAXIS1': sdata.shape[0],
+    'NAXIS2': sdata.shape[1]
 }
 input_wcs = wcs.WCS(wcs_dict)
 
 ''' Create NDCube '''
-datacube = NDCube(data, input_wcs)
-max_pixel = np.unravel_index(np.argmax(datacube.data), datacube.data.shape)
-fov = [20, 20] ## [px,px]
+datacube = NDCube(sdata, input_wcs)
 
 ''' One 2D-Gaussian '''
 ''' Definition of One 2D-Gaussian function '''
@@ -128,7 +131,9 @@ g1OnG = models.Gaussian2D(OneG_out.amp1.value, OneG_out.x_mean.value,
                        OneG_out.y1_stddev.value, OneG_out.theta.value)
 G1OnG = g1OnG(Xg, Yg)
 ''' Estimate R^2 '''
-RS1G = RSquared(data, fit1G)
+RS1G = RSquared(datacube.data, fit1G)
+'''  Chi Square '''
+chisq1 = scipy.stats.chisquare(datacube.data[np.abs(Zout1G) >= 1e-15], f_exp=Zout1G[np.abs(Zout1G) >= 1e-15])
 
 # Create ImageNormalize objects:
 normLogT = ImageNormalize(Zout1G, interval=MinMaxInterval(),stretch=LogStretch())
@@ -136,8 +141,6 @@ normLogT = ImageNormalize(Zout1G, interval=MinMaxInterval(),stretch=LogStretch()
 fig, ax1 = plt.subplots(1, 1,figsize=(4.3,4),subplot_kw=dict(projection=datacube.wcs))
 im1 = ax1.imshow(Zout1G, origin='lower', cmap=plt.cm.viridis,norm=normLogT)
 cbar1 = fig.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
-ax1.set_xlim(max_pixel[1]-fov[1], max_pixel[1]+fov[1])
-ax1.set_ylim(max_pixel[0]-fov[0], max_pixel[0]+fov[0])
 ax1.set_title('One 2D-GaussFit Log scale',fontsize=14)
 plt.show()
 ''' Print what the amplitud ratios are '''
@@ -151,7 +154,7 @@ print('The standard deviation for the One 2D-Gaussians are: S1x = {0:.5f} and S1
        ))
 print('Offset = {0:.5f}'.format(round(OneG_out.offset.value,5)))
 print('$R^2$ for One gaussians is {0:.5f}'.format(round(RS1G,5)))
-
+print('$chi^2$ for one gaussians is {0:.5f}'.format(round(chisq1[0],5)))
 
 ## Plot 3D Fitted Gaussian
 ''' Clipping data '''
@@ -230,7 +233,9 @@ G1TwG = g1TwG(Xg, Yg)
 G2TwG = g2TwG(Xg, Yg)
 
 ''' Estimate R^2 '''
-RS2G = RSquared(data, fit2G)
+RS2G = RSquared(datacube.data, fit2G)
+'''  Chi Square '''
+chisq2 = scipy.stats.chisquare(datacube.data[np.abs(Zout2G) >= 1e-15], f_exp=Zout2G[np.abs(Zout2G) >= 1e-15])
 
 ## Plot Sinlge 2D Gaussian Fit:
 # Create ImageNormalize objects:
@@ -244,20 +249,14 @@ fig.subplots_adjust(wspace = 0.4) ## Sets space between subplots to avoid overla
 ## Best fit of the all three gaussians:
 im1 = ax1.imshow(Zout2G, origin='lower', cmap=plt.cm.viridis,norm=normLogT)
 cbar1 = fig.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
-ax1.set_xlim(max_pixel[1]-fov[1], max_pixel[1]+fov[1])
-ax1.set_ylim(max_pixel[0]-fov[0], max_pixel[0]+fov[0])
 ax1.set_title('Two 2D-GaussFit Log scale',fontsize=14)
 ## Gaussian One:
 im2 = ax2.imshow(G1TwG, origin='lower', cmap=plt.cm.viridis,norm=normLog1)
 cbar2 = fig.colorbar(im2,ax=ax2, fraction=0.046, pad=0.04)
-ax2.set_xlim(max_pixel[1]-fov[1], max_pixel[1]+fov[1])
-ax2.set_ylim(max_pixel[0]-fov[0], max_pixel[0]+fov[0])
 ax2.set_title('2D-Gaussian One - Log scale',fontsize=14)
 ## Gaussian Two:
 im3 = ax3.imshow(G2TwG, origin='lower', cmap=plt.cm.viridis,norm=normLog2)
 cbar3 = fig.colorbar(im3,ax=ax3, fraction=0.046, pad=0.04)
-ax3.set_xlim(max_pixel[1]-fov[1], max_pixel[1]+fov[1])
-ax3.set_ylim(max_pixel[0]-fov[0], max_pixel[0]+fov[0])
 ax3.set_title('2D-Gaussian Two - Log scale',fontsize=14)
 plt.show()
 ''' Print what the amplitud ratios are '''
@@ -278,6 +277,7 @@ print('The standard deviation for the two 2D-Gaussians are: S1x = {0:.5f}, S1y =
 
 print('Offset = {0:.5f}'.format(round(TwoG_out.offset.value,5)))
 print('$R^2$ for two gaussians is {0:.5f}'.format(round(RS2G,5)))
+print('$chi^2$ for two gaussians is {0:.5f}'.format(round(chisq2[0],5)))
 
 ## Plot 3D Fitted Gaussians
 ''' Clipping data '''

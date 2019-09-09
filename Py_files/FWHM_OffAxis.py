@@ -409,22 +409,22 @@ nlist_045_XX = [0.4, -0.4, 0.7, -0.7, 1.4, -1.4, 2.1, -2.1, 3.5, -3.5, 4.9, -4.9
 for XX, filename in zip(nlist_000_XX,flist_000):
     RunFWHM(folder,XX,0.0,filename,SaveFolder)
 ## 090
-for YY, filename in zip(nlist_000_XX,flist_090):
-    RunFWHM(folder,0.0,YY,filename,SaveFolder)
+#for YY, filename in zip(nlist_000_XX,flist_090):
+#    RunFWHM(folder,0.0,YY,filename,SaveFolder)
 ## 045
-for XX,YY, filename in zip(nlist_045_XX,nlist_045_XX,flist_045):
-    RunFWHM(folder,XX,YY,filename,SaveFolder)
+#for XX,YY, filename in zip(nlist_045_XX,nlist_045_XX,flist_045):
+#    RunFWHM(folder,XX,YY,filename,SaveFolder)
 
 ## 135
-for XX,YY, filename in zip(nlist_045_XX,nlist_045_XX,flist_135):
-    RunFWHM(folder,XX,-YY,filename,SaveFolder)
+#for XX,YY, filename in zip(nlist_045_XX,nlist_045_XX,flist_135):
+#    RunFWHM(folder,XX,-YY,filename,SaveFolder)
 
 
 
 ## Next three lines for testing:
-filename = '/Volumes/Pandora/FOXSI/OpCal/FOXSI-3_2018Mar/X2-10Shells/CCD/X2-No-WA-PSF/FOXSI3_X2_CCD_T6Sx6_10kV_0p02mA_0arcminX_0arcminY.fits'
-XX = nlist_000_XX[-1]
-RunFWHM(folder,0.0,0.0,filename,SaveFolder)
+#filename = '/Volumes/Pandora/FOXSI/OpCal/FOXSI-3_2018Mar/X2-10Shells/CCD/X2-No-WA-PSF/FOXSI3_X2_CCD_T6Sx6_10kV_0p02mA_0arcminX_0arcminY.fits'
+#XX = nlist_000_XX[-1]
+#RunFWHM(folder,0.0,0.0,filename,SaveFolder)
 
 
 print('Happy Ending!')

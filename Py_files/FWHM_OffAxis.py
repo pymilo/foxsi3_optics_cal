@@ -47,7 +47,7 @@ def RunFWHM(folder,XX,YY,filename,SaveFolder):
     XX = XX   ## in arcmins
     YY = YY   ## in arcmins
 
-    print('Pitch = {0} arcmin, Yaw = {1}'.format(str(XX),str(YY)))
+    print('Yaw = {0} arcmin, Pitch = {1}'.format(str(XX),str(YY)))
 
     '''' File names: '''
     filename=filename
@@ -199,13 +199,13 @@ def RunFWHM(folder,XX,YY,filename,SaveFolder):
     im4 = ax4.imshow(G3.T, origin='lower', cmap=plt.cm.viridis,norm=normLog3)
     cbar4 = fig.colorbar(im4,ax=ax4)
     ax4.set_title('2D-Gaussian Three - Log scale',fontsize=14)
-    fig.suptitle('Pitch {0} arcmin & Yaw {1} arcmin'.format(str(XX),str(YY)), fontsize=16)
-    plt.savefig(SaveFolder+'{0}Pitch&{1}Yaw_Flat.png'.format(str(XX),str(YY)))
+    fig.suptitle('Yaw {0} arcmin & Pitch {1} arcmin'.format(str(XX),str(YY)), fontsize=16)
+    plt.savefig(SaveFolder+'{0}Yaw&{1}Pitch_Flat.png'.format(str(XX),str(YY)))
     plt.close(fig)
 
     ''' Print what the amplitud ratios are '''
     print('*'*30,file=f)
-    print('Parameters for {0} Pitch & {1} Yaw : '.format(str(XX),str(YY)),file=f)
+    print('Parameters for {0} Yaw & {1} Pitch : '.format(str(XX),str(YY)),file=f)
     print('The amplitud ratios for the guessed three 2D-Gaussians are: A1 = {0:.5f}, A2 = {1:.5f}, and {2:.5f}.'
         .format(round(ThreeG_guess.amp1.value/(ThreeG_guess.amp1.value+ThreeG_guess.amp2.value+ThreeG_guess.amp3.value),5),
                 round(ThreeG_guess.amp2.value/(ThreeG_guess.amp1.value+ThreeG_guess.amp2.value+ThreeG_guess.amp3.value),5),
@@ -255,8 +255,8 @@ def RunFWHM(folder,XX,YY,filename,SaveFolder):
     ax4.plot_surface(sXg,sYg,sG3,cmap=plt.cm.viridis)
     ax4.set_title('2D-Gaussian Three',fontsize=14)
     ax4.set_zlim3d(0, sZout.max())
-    fig.suptitle('Pitch {0} arcmin & Yaw {1} arcmin'.format(str(XX),str(YY)), fontsize=16)
-    plt.savefig(SaveFolder+'{0}Pitch&{1}Yaw_3D.png'.format(str(XX),str(YY)))
+    fig.suptitle('Yaw {0} arcmin & Pitch {1} arcmin'.format(str(XX),str(YY)), fontsize=16)
+    plt.savefig(SaveFolder+'{0}Yaw&{1}Pitch_3D.png'.format(str(XX),str(YY)))
     plt.close(fig)
 
 
@@ -269,8 +269,8 @@ def RunFWHM(folder,XX,YY,filename,SaveFolder):
     cbar1 = fig.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
     ax1.set_xlim(max_pixel[1]-fov[1], max_pixel[1]+fov[1])
     ax1.set_ylim(max_pixel[0]-fov[0], max_pixel[0]+fov[0])
-    ax1.set_title('Difference Data vs Fit - Pitch {0} arcmin & Yaw {1} arcmin'.format(str(XX),str(YY)),fontsize=14)
-    plt.savefig(SaveFolder+'{0}Pitch&{1}Yaw_Diff.png'.format(str(XX),str(YY)))
+    ax1.set_title('Difference Data vs Fit - Yaw {0} arcmin & Pitch {1} arcmin'.format(str(XX),str(YY)),fontsize=14)
+    plt.savefig(SaveFolder+'{0}Yaw&{1}Pitch_Diff.png'.format(str(XX),str(YY)))
     plt.close(fig)
 
     ''' Estimate of the FWHM on X&Y '''
@@ -365,10 +365,10 @@ def RunFWHM(folder,XX,YY,filename,SaveFolder):
     ax.set_rmax(15)
     ax.set_rmin(3)
     #ax.set_rticks([6, 6.5, 7, 7.5, 8])
-    ax.set_title('Pitch {0} arcmin & Yaw = {1} arcmin'.format(str(XX),str(YY)),fontsize=16)
-    plt.savefig(SaveFolder+'{0}Pitch&{1}Yaw_FWHMvsAngle.png'.format(str(XX),str(YY)))
+    ax.set_title('Yaw {0} arcmin & Pitch = {1} arcmin'.format(str(XX),str(YY)),fontsize=16)
+    plt.savefig(SaveFolder+'{0}Yaw&{1}Pitch_FWHMvsAngle.png'.format(str(XX),str(YY)))
     plt.close(fig)
-    print('FWHM for {0} arcmin in Pitch and {1} arcmin in Yaw:'.format(str(XX),str(YY)),file=f)
+    print('FWHM for {0} arcmin in Yaw and {1} arcmin in Pitch:'.format(str(XX),str(YY)),file=f)
     print('The average FWHM over the azimuthal angle is {0} arcsecs.'.format(round(2*r.mean()*plate_scale.value,4)),file=f)
 
 

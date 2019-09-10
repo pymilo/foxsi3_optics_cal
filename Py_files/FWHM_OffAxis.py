@@ -182,21 +182,21 @@ def RunFWHM(folder,XX,YY,filename,SaveFolder):
                                              subplot_kw=dict(projection=datacube.wcs))
     fig.subplots_adjust(wspace = 0.4) ## Sets space between subplots to avoid overlap
     ## Best fit of the all three gaussians:
-    im1 = ax1.imshow(Zout.T, origin='lower', cmap=plt.cm.viridis,norm=normLogT)
+    im1 = ax1.imshow(Zout, origin='lower', cmap=plt.cm.viridis,norm=normLogT)
     cbar1 = fig.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
     ax1.set_title('Three 2D-GaussFit Log scale',fontsize=14)
     levels = np.array([.5*Zout.max()]) ## Set level at half the maximum
-    CFWHM = ax1.contour(Zout.T, levels) ## Generate contour
+    CFWHM = ax1.contour(Zout, levels) ## Generate contour
     ## Gaussian One:
-    im2 = ax2.imshow(G1.T, origin='lower', cmap=plt.cm.viridis,norm=normLog1)
+    im2 = ax2.imshow(G1, origin='lower', cmap=plt.cm.viridis,norm=normLog1)
     cbar2 = fig.colorbar(im2,ax=ax2)
     ax2.set_title('2D-Gaussian One - Log scale',fontsize=14)
     ## Gaussian Two:
-    im3 = ax3.imshow(G2.T, origin='lower', cmap=plt.cm.viridis,norm=normLog2)
+    im3 = ax3.imshow(G2, origin='lower', cmap=plt.cm.viridis,norm=normLog2)
     cbar3 = fig.colorbar(im3,ax=ax3)
     ax3.set_title('2D-Gaussian Two - Log scale',fontsize=14)
     ## Gaussian Two:
-    im4 = ax4.imshow(G3.T, origin='lower', cmap=plt.cm.viridis,norm=normLog3)
+    im4 = ax4.imshow(G3, origin='lower', cmap=plt.cm.viridis,norm=normLog3)
     cbar4 = fig.colorbar(im4,ax=ax4)
     ax4.set_title('2D-Gaussian Three - Log scale',fontsize=14)
     fig.suptitle('Yaw {0} arcmin & Pitch {1} arcmin'.format(str(XX),str(YY)), fontsize=16)
@@ -350,12 +350,12 @@ def RunFWHM(folder,XX,YY,filename,SaveFolder):
     normLogT = ImageNormalize(Zout, interval=MinMaxInterval(),stretch=LogStretch())
     r_up = np.sqrt((x_fwhm-ThreeG_out.x_mean)**2 + (y_fwhm_up-ThreeG_out.y_mean)**2)
     r_down = np.sqrt((x_fwhm-ThreeG_out.x_mean)**2 + (y_fwhm_down-ThreeG_out.y_mean)**2)
-    phi_up = np.arctan2((y_fwhm_up-ThreeG_out.y_mean),(x_fwhm-ThreeG_out.x_mean))
-    phi_down = np.arctan2((y_fwhm_down-ThreeG_out.y_mean),(x_fwhm-ThreeG_out.x_mean))
+    phi_up = np.arctan2((x_fwhm-ThreeG_out.x_mean),(y_fwhm_up-ThreeG_out.y_mean))
+    phi_down = np.arctan2((x_fwhm-ThreeG_out.x_mean),(y_fwhm_down-ThreeG_out.y_mean))
     r_right = np.sqrt((x_fwhm_right-ThreeG_out.x_mean)**2 + (y_fwhm2-ThreeG_out.y_mean)**2)
     r_left = np.sqrt((x_fwhm_left-ThreeG_out.x_mean)**2 + (y_fwhm2-ThreeG_out.y_mean)**2)
-    phi_right = np.arctan2((y_fwhm2-ThreeG_out.y_mean),(x_fwhm_right-ThreeG_out.x_mean))
-    phi_left = np.arctan2((y_fwhm2-ThreeG_out.y_mean),(x_fwhm_left-ThreeG_out.x_mean))
+    phi_right = np.arctan2((x_fwhm_right-ThreeG_out.x_mean),(y_fwhm2-ThreeG_out.y_mean))
+    phi_left = np.arctan2((x_fwhm_left-ThreeG_out.x_mean),(y_fwhm2-ThreeG_out.y_mean))
 
     r = np.concatenate((r_up,r_down,r_right,r_left))
     phi = np.concatenate((phi_up,phi_down,phi_right,phi_left))
@@ -405,26 +405,32 @@ for key in str_indices_ds:
 nlist_000_XX = [0.5, -0.5, 1.0, -1.0, 2.0, -2.0, 3.0, -3.0, 5.0, -5.0, 7.0, -7.0, 9.0, -9.0]
 nlist_045_XX = [0.4, -0.4, 0.7, -0.7, 1.4, -1.4, 2.1, -2.1, 3.5, -3.5, 4.9, -4.9, 6.4, -6.4]
 
-## 000
+## On axis
+filename = '/Volumes/Pandora/FOXSI/OpCal/FOXSI-3_2018Mar/X2-10Shells/CCD/X2-No-WA-PSF/FOXSI3_X2_CCD_T6Sx6_10kV_0p02mA_0arcminX_0arcminY.fits'
+RunFWHM(folder,0.0,0.0,filename,SaveFolder)
+
+## 000 - The negative sign for XX is due to the mirroring flip of the CCD.
 for XX, filename in zip(nlist_000_XX,flist_000):
-    RunFWHM(folder,XX,0.0,filename,SaveFolder)
+    RunFWHM(folder,-XX,0.0,filename,SaveFolder)
+
 ## 090
-#for YY, filename in zip(nlist_000_XX,flist_090):
-#    RunFWHM(folder,0.0,YY,filename,SaveFolder)
+for YY, filename in zip(nlist_000_XX,flist_090):
+    RunFWHM(folder,0.0,YY,filename,SaveFolder)
+
 ## 045
-#for XX,YY, filename in zip(nlist_045_XX,nlist_045_XX,flist_045):
-#    RunFWHM(folder,XX,YY,filename,SaveFolder)
+for XX,YY, filename in zip(nlist_045_XX,nlist_045_XX,flist_045):
+    RunFWHM(folder,-XX,YY,filename,SaveFolder)
 
 ## 135
-#for XX,YY, filename in zip(nlist_045_XX,nlist_045_XX,flist_135):
-#    RunFWHM(folder,XX,-YY,filename,SaveFolder)
-
+for XX,YY, filename in zip(nlist_045_XX,nlist_045_XX,flist_135):
+    RunFWHM(folder,-XX,-YY,filename,SaveFolder)
 
 
 ## Next three lines for testing:
-#filename = '/Volumes/Pandora/FOXSI/OpCal/FOXSI-3_2018Mar/X2-10Shells/CCD/X2-No-WA-PSF/FOXSI3_X2_CCD_T6Sx6_10kV_0p02mA_0arcminX_0arcminY.fits'
-#XX = nlist_000_XX[-1]
-#RunFWHM(folder,0.0,0.0,filename,SaveFolder)
+#filename = flist_045[-1]
+#XX = nlist_045_XX[-1]
+#YY = nlist_045_XX[-1]
+#RunFWHM(folder,-XX,YY,filename,SaveFolder)
 
 
 print('Happy Ending!')

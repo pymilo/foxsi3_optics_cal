@@ -17,6 +17,9 @@ Output:
             3. Plot of the difference Data vs. Fit in log scale.
             4. Print out the parameters for the three 2D-Gaussians and the offset.
             5. Plot of the FWHM as a function of the azimuthal angle
+            6. Compiled Plot of the ALL Contours (Data and Fit) as a function of the Off-axis angles
+               [FitCont_vs_OffAxis.png & DatCont_vs_OffAxis.png].
+
 
 Date: Sep, 2019
 Author: Milo
@@ -307,6 +310,25 @@ def RunFWHM(folder,XX,YY,filename,SaveFolder):
     plt.savefig(SaveFolder+'{0}Yaw&{1}Pitch_Diff.png'.format(str(XX),str(YY)),transparent=True)
     plt.close(fig)
 
+    levels = np.array([.2,.4,.6,.8,.92]) ## Set level at half the maximum
+    CFWHM_dat = plt.contour(datacube.data, levels,colors='black') ## Generate contour Data
+    CFWHM_fit = plt.contour(Zout, levels,colors='black') ## Generate contour Fit
+    plt.close() ## needed to avoid ploting contours at this time.
+
+    CX_Dat, CY_Dat = [], []
+    for c in CFWHM_dat.collections:
+        v = c.get_paths()[0].vertices
+        CX_Dat.append(v[:,0]-ThreeG_out.x_mean.value)
+        CY_Dat.append(v[:,1]-ThreeG_out.y_mean.value)
+
+    CX_Fit, CY_Fit = [], []
+    for c in CFWHM_fit.collections:
+        v = c.get_paths()[0].vertices
+        CX_Fit.append(v[:,0]-ThreeG_out.x_mean.value)
+        CY_Fit.append(v[:,1]-ThreeG_out.y_mean.value)
+
+    return ((CX_Dat,CY_Dat), (CX_Fit,CY_Fit))
+
 
 ''' Main program '''
 ## Path to the folder where to save all the outcomes:
@@ -341,30 +363,67 @@ for key in str_indices_ds:
 nlist_000_XX = [0.5, -0.5, 1.0, -1.0, 2.0, -2.0, 3.0, -3.0, 5.0, -5.0, 7.0, -7.0, 9.0, -9.0]
 nlist_045_XX = [0.4, -0.4, 0.7, -0.7, 1.4, -1.4, 2.1, -2.1, 3.5, -3.5, 4.9, -4.9, 6.4, -6.4]
 
+CDat_all, CFit_all, XX_all, YY_all = [], [], [], []
 ## On axis
 filename = '/Volumes/Pandora/FOXSI/OpCal/FOXSI-3_2018Mar/X2-10Shells/CCD/X2-No-WA-PSF/FOXSI3_X2_CCD_T6Sx6_10kV_0p02mA_0arcminX_0arcminY.fits'
-RunFWHM(folder,0.0,0.0,filename,SaveFolder)
+XX_all.append(0.0); YY_all.append(0.0)
+CDat, CFit = RunFWHM(folder,0.0,0.0,filename,SaveFolder)
+CDat_all.append(CDat); CFit_all.append(CFit)
 
 ## 000 - The negative sign for XX is due to the mirroring flip of the CCD.
 for XX, filename in zip(nlist_000_XX,flist_000):
-    RunFWHM(folder,-XX,0.0,filename,SaveFolder)
+    XX_all.append(-XX); YY_all.append(0.0)
+    CDat, CFit = RunFWHM(folder,-XX,0.0,filename,SaveFolder)
+    CDat_all.append(CDat); CFit_all.append(CFit)
 
 ## 090
 for YY, filename in zip(nlist_000_XX,flist_090):
-    RunFWHM(folder,0.0,YY,filename,SaveFolder)
+    XX_all.append(0.0); YY_all.append(YY)
+    CDat, CFit = RunFWHM(folder,0.0,YY,filename,SaveFolder)
+    CDat_all.append(CDat); CFit_all.append(CFit)
 
 ## 045
 for XX,YY, filename in zip(nlist_045_XX,nlist_045_XX,flist_045):
-    RunFWHM(folder,-XX,YY,filename,SaveFolder)
+    XX_all.append(-XX); YY_all.append(YY)
+    CDat, CFit = RunFWHM(folder,-XX,YY,filename,SaveFolder)
+    CDat_all.append(CDat); CFit_all.append(CFit)
 
 ## 135
 for XX,YY, filename in zip(nlist_045_XX,nlist_045_XX,flist_135):
-    RunFWHM(folder,-XX,-YY,filename,SaveFolder)
+    XX_all.append(-XX); YY_all.append(-YY)
+    CDat, CFit = RunFWHM(folder,-XX,-YY,filename,SaveFolder)
+    CDat_all.append(CDat); CFit_all.append(CFit)
+
+''' Plot of the Data Contours as function of the off-axis angles - with a factor of 6 '''
+scale=.05 ## this is 60*0.05 = 3 times the actual size of the contours
+fig, ax1 = plt.subplots(figsize=(80,80))
+for c in nlist_000_XX:
+    circle = plt.Circle((0, 0), c, color='gray', linestyle='dashed', fill=False)
+    ax1.add_artist(circle)
+for i in range(0,len(CDat_all)):
+    for j in range (0,len(CDat_all[0][0])):
+        ax1.plot(np.array(scale*CDat_all[i][0][j])+XX_all[i],scale*np.array(CDat_all[i][1][j])+YY_all[i],color='k')
+    #ax1.plot(np.array(CDat_all[i][0])+XX_all[i],np.array(CDat_all[i][1])+YY_all[i],c='blue',s=6)
+ax1.tick_params(labelsize=80,length=20, width=5)
+ax1.set_xlabel('Yaw [arcmin]',fontsize=80);ax1.set_ylabel('Pitch [arcmin]',fontsize=80)
+ax1.set_title('Data Contours as a funtion of Off-axis angles',fontsize=140)
+plt.savefig(SaveFolder+'DatCont_vs_OffAxis.png')
+
+''' Plot of the FWHMs as function of the off-axis angles - with a factor of 6 '''
+scale=.05 ## this is 60*0.05 = 3 times the actual size of the contours
+fig, ax1 = plt.subplots(figsize=(80,80))
+for c in nlist_000_XX:
+    circle = plt.Circle((0, 0), c, color='gray', linestyle='dashed', fill=False)
+    ax1.add_artist(circle)
+for i in range(0,len(CFit_all)):
+    for j in range (0,len(CFit_all[0][0])):
+        ax1.plot(np.array(scale*CFit_all[i][0][j])+XX_all[i],scale*np.array(CFit_all[i][1][j])+YY_all[i],color='k')
+    #ax1.plot(np.array(CDat_all[i][0])+XX_all[i],np.array(CDat_all[i][1])+YY_all[i],c='blue',s=6)
+ax1.tick_params(labelsize=80,length=20, width=5)
+ax1.set_xlabel('Yaw [arcmin]',fontsize=80);ax1.set_ylabel('Pitch [arcmin]',fontsize=80)
+ax1.set_title('Fit Contours as a funtion of Off-axis angles',fontsize=140)
+plt.savefig(SaveFolder+'FitCont_vs_OffAxis.png')
 
 
-## Next three lines for testing:
-#filename = flist_045[-1]
-#XX = nlist_045_XX[-1]
-#YY = nlist_045_XX[-1]
-#RunFWHM(folder,-XX,YY,filename,SaveFolder)
+
 print('Final!')

@@ -9,7 +9,7 @@ Goal: To fit Three 2D gaussians to the FOXSI3 SLF data corrected by darks.
 Input:  1. Fits file with SLF Data taken with the Andor CCD Camera.
         2. Dark fits files for correction.
 
-Run on terminal: ipython FWHM_OffAxis.py
+Run on terminal: ipython Data_Fit_Contour_FWHM.py
 
 Output:
             1. Flat plots of the three 2D-Gaussians in Log scale.
@@ -17,7 +17,6 @@ Output:
             3. Plot of the difference Data vs. Fit in log scale.
             4. Print out the parameters for the three 2D-Gaussians and the offset.
             5. Plot of the FWHM as a function of the azimuthal angle
-            6. Compiled Plot of the ALL FWHMs as a function of the Off-axis angles [FWHM_vs_OffAxis.png].
 
 Date: Sep, 2019
 Author: Milo
@@ -90,8 +89,8 @@ def RunFWHM(folder,XX,YY,filename,SaveFolder):
         'CUNIT2':'arcsec',
         'CDELT1': plate_scale.value, ## Plate scale in arcsec
         'CDELT2': plate_scale.value, ## Plate scale in arcsec
-        'CRPIX1':0,
-        'CRPIX2':0,
+        'CRPIX1': 0.5 * sdata.shape[0] + 1,
+        'CRPIX2': 0.5 * sdata.shape[1] + 1,
         'CRVAL1': 0,
         'CRVAL2': 0,
         'NAXIS1': sdata.shape[0],
@@ -171,39 +170,6 @@ def RunFWHM(folder,XX,YY,filename,SaveFolder):
     '''  Chi Square '''
     chisq = scipy.stats.chisquare(datacube.data[np.abs(Zout) >= 1e-15], f_exp=Zout[np.abs(Zout) >= 1e-15])
 
-    ''' Plot Flat Fitted Gaussians  '''
-    # Create ImageNormalize objects:
-    normLogT = ImageNormalize(Zout, interval=MinMaxInterval(),stretch=LogStretch())
-    normLog1 = ImageNormalize(G1, interval=MinMaxInterval(),stretch=LogStretch())
-    normLog2 = ImageNormalize(G2, interval=MinMaxInterval(),stretch=LogStretch())
-    normLog3 = ImageNormalize(G3, interval=MinMaxInterval(),stretch=LogStretch())
-
-    ''' Plotting '''
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2,figsize=(10,8),
-                                             subplot_kw=dict(projection=datacube.wcs))
-    fig.subplots_adjust(wspace = 0.4) ## Sets space between subplots to avoid overlap
-    ## Best fit of the all three gaussians:
-    im1 = ax1.imshow(Zout, origin='lower', cmap=plt.cm.viridis,norm=normLogT)
-    cbar1 = fig.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
-    ax1.set_title('Three 2D-GaussFit Log scale',fontsize=14)
-    levels = np.array([.5*Zout.max()]) ## Set level at half the maximum
-    CFWHM = ax1.contour(Zout, levels) ## Generate contour
-    ## Gaussian One:
-    im2 = ax2.imshow(G1, origin='lower', cmap=plt.cm.viridis,norm=normLog1)
-    cbar2 = fig.colorbar(im2,ax=ax2)
-    ax2.set_title('2D-Gaussian One - Log scale',fontsize=14)
-    ## Gaussian Two:
-    im3 = ax3.imshow(G2, origin='lower', cmap=plt.cm.viridis,norm=normLog2)
-    cbar3 = fig.colorbar(im3,ax=ax3)
-    ax3.set_title('2D-Gaussian Two - Log scale',fontsize=14)
-    ## Gaussian Two:
-    im4 = ax4.imshow(G3, origin='lower', cmap=plt.cm.viridis,norm=normLog3)
-    cbar4 = fig.colorbar(im4,ax=ax4)
-    ax4.set_title('2D-Gaussian Three - Log scale',fontsize=14)
-    fig.suptitle('Yaw {0} arcmin & Pitch {1} arcmin'.format(str(XX),str(YY)), fontsize=16)
-    plt.savefig(SaveFolder+'{0}Yaw&{1}Pitch_Flat.png'.format(str(XX),str(YY)))
-    plt.close(fig)
-
     ''' Print what the amplitud ratios are '''
     print('*'*30,file=f)
     print('Parameters for {0} Yaw & {1} Pitch : '.format(str(XX),str(YY)),file=f)
@@ -230,49 +196,6 @@ def RunFWHM(folder,XX,YY,filename,SaveFolder):
     print('Angle = {0:.5f} degrees'.format(round(phi,3)),file=f)
     print('$R^2$ for three gaussians is {0:.5f}'.format(round(RS3G,5)),file=f)
     print('$chi^2$ for three gaussians is {0:.5f}'.format(round(chisq[0]/(Zout.shape[0]*Zout.shape[1]),5)),file=f)
-
-    ''' Plot  3D Fitted Gaussians '''
-
-    ''' Clipping data '''
-    fov = [7,7]
-    sXg = Xg[max_pixel[0]-fov[0]:max_pixel[0]+fov[0],max_pixel[1]-fov[1]:max_pixel[1]+fov[1]]
-    sYg = Yg[max_pixel[0]-fov[0]:max_pixel[0]+fov[0],max_pixel[1]-fov[1]:max_pixel[1]+fov[1]]
-    sZout = ThreeG_out(sXg, sYg)
-    sG1 = g1(sXg, sYg)
-    sG2 = g2(sXg, sYg)
-    sG3 = g3(sXg, sYg)
-
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2,figsize=(10,8),
-                                                subplot_kw=dict(projection='3d'))
-    ax1.plot_surface(sXg,sYg,sZout,cmap=plt.cm.viridis)
-    ax1.set_title('Three 2D-GaussFit',fontsize=14)
-    ax1.set_zlim3d(0, sZout.max())
-    ax2.plot_surface(sXg,sYg,sG1,cmap=plt.cm.viridis)
-    ax2.set_title('2D-Gaussian One',fontsize=14)
-    ax2.set_zlim3d(0, sZout.max())
-    ax3.plot_surface(sXg,sYg,sG2,cmap=plt.cm.viridis)
-    ax3.set_title('2D-Gaussian Two',fontsize=14)
-    ax3.set_zlim3d(0, sZout.max())
-    ax4.plot_surface(sXg,sYg,sG3,cmap=plt.cm.viridis)
-    ax4.set_title('2D-Gaussian Three',fontsize=14)
-    ax4.set_zlim3d(0, sZout.max())
-    fig.suptitle('Yaw {0} arcmin & Pitch {1} arcmin'.format(str(XX),str(YY)), fontsize=16)
-    plt.savefig(SaveFolder+'{0}Yaw&{1}Pitch_3D.png'.format(str(XX),str(YY)))
-    plt.close(fig)
-
-
-    ''' Plot Difference Data vs Fit '''
-    diff = (datacube.data-Zout)
-    diffmax = (np.array(diff.max(),-diff.min())).max()
-    fov = [15,15]
-    fig, ax1 = plt.subplots(figsize=(6,6),subplot_kw=dict(projection=datacube.wcs))
-    im1 = ax1.imshow(diff, origin='lower', cmap=plt.cm.bwr_r,vmin=-diffmax,vmax=diffmax)
-    cbar1 = fig.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
-    ax1.set_xlim(max_pixel[1]-fov[1], max_pixel[1]+fov[1])
-    ax1.set_ylim(max_pixel[0]-fov[0], max_pixel[0]+fov[0])
-    ax1.set_title('Difference Data vs Fit - Yaw {0} arcmin & Pitch {1} arcmin'.format(str(XX),str(YY)),fontsize=14)
-    plt.savefig(SaveFolder+'{0}Yaw&{1}Pitch_Diff.png'.format(str(XX),str(YY)))
-    plt.close(fig)
 
     ''' Estimate of the FWHM on X&Y '''
 
@@ -346,42 +269,48 @@ def RunFWHM(folder,XX,YY,filename,SaveFolder):
 
     ThreeG_out.offset += half_maximum
 
-    ''' Plotting a Map of the FWHM '''
+    ''' Plot Flat Fitted Gaussians  '''
     # Create ImageNormalize objects:
-    normLogT = ImageNormalize(Zout, interval=MinMaxInterval(),stretch=LogStretch())
-    r_up = np.sqrt((x_fwhm-ThreeG_out.x_mean)**2 + (y_fwhm_up-ThreeG_out.y_mean)**2)
-    r_down = np.sqrt((x_fwhm-ThreeG_out.x_mean)**2 + (y_fwhm_down-ThreeG_out.y_mean)**2)
-    phi_up = np.arctan2((x_fwhm-ThreeG_out.x_mean),(y_fwhm_up-ThreeG_out.y_mean))
-    phi_down = np.arctan2((x_fwhm-ThreeG_out.x_mean),(y_fwhm_down-ThreeG_out.y_mean))
-    r_right = np.sqrt((x_fwhm_right-ThreeG_out.x_mean)**2 + (y_fwhm2-ThreeG_out.y_mean)**2)
-    r_left = np.sqrt((x_fwhm_left-ThreeG_out.x_mean)**2 + (y_fwhm2-ThreeG_out.y_mean)**2)
-    phi_right = np.arctan2((x_fwhm_right-ThreeG_out.x_mean),(y_fwhm2-ThreeG_out.y_mean))
-    phi_left = np.arctan2((x_fwhm_left-ThreeG_out.x_mean),(y_fwhm2-ThreeG_out.y_mean))
+    normLogT = ImageNormalize(datacube.data, interval=MinMaxInterval(),stretch=LogStretch())
 
-    r = np.concatenate((r_up,r_down,r_right,r_left))
-    phi = np.concatenate((phi_up,phi_down,phi_right,phi_left))
-    ## Polar Plot:
-    fig, ax = plt.subplots(figsize=(5,5),subplot_kw=dict(projection='polar'))
-    ax.plot(phi, 2*r*plate_scale,'o')
-    ax.set_rmax(15)
-    ax.set_rmin(3)
-    #ax.set_rticks([6, 6.5, 7, 7.5, 8])
-    ax.set_title('Yaw {0} arcmin & Pitch = {1} arcmin'.format(str(XX),str(YY)),fontsize=16)
-    plt.savefig(SaveFolder+'{0}Yaw&{1}Pitch_FWHMvsAngle.png'.format(str(XX),str(YY)))
+    ''' Plotting '''
+    fig, ax1 = plt.subplots(figsize=(6,6),subplot_kw=dict(projection=datacube.wcs))
+    ## Plot of everyting together:
+    fov = [6,6]
+    im1 = ax1.imshow(datacube.data, origin='lower', cmap=plt.cm.viridis,norm=normLogT,vmin=0.0,vmax=1.0)
+    ax1.scatter(y_fwhm_down,x_fwhm,c='blue',s=3)
+    ax1.scatter(y_fwhm_up,x_fwhm,c='blue',s=3)
+    ax1.scatter(y_fwhm2,x_fwhm_left,c='blue',s=3)
+    ax1.scatter(y_fwhm2,x_fwhm_right,c='blue',s=3)
+    ax1.set_title('Data in Bg + [Data, Fit & FWHM] in Contours',fontsize=15)
+    ax1.set_xlim(max_pixel[1]-fov[1], max_pixel[1]+fov[1])
+    ax1.set_ylim(max_pixel[0]-fov[0], max_pixel[0]+fov[0])
+    levels = np.array([.2,.4,.6,.8,.95]) ## Set level at half the maximum
+    CFWHM_dat = ax1.contour(datacube.data, levels,colors='black') ## Generate contour Data
+    CFWHM_fit = ax1.contour(Zout, levels,colors='white') ## Generate contour Fit
+    cbar1 = fig.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
+    cbar1.add_lines(CFWHM_fit)
+    cbar1.ax.plot([0, 1], [0.905,0.905], c='blue')
+    fig.suptitle('Yaw {0} arcmin & Pitch {1} arcmin'.format(str(XX),str(YY)), fontsize=16)
+    plt.savefig(SaveFolder+'{0}Yaw&{1}Pitch_Flat.png'.format(str(XX),str(YY)),transparent=True)
     plt.close(fig)
-    print('FWHM for {0} arcmin in Yaw and {1} arcmin in Pitch:'.format(str(XX),str(YY)),file=f)
-    print('The average FWHM over the azimuthal angle is {0} arcsecs.'.format(round(2*r.mean()*plate_scale.value,4)),file=f)
 
-    XX_fwhm = np.concatenate((y_fwhm_down,y_fwhm_up,y_fwhm2,y_fwhm2), axis=0)
-    YY_fwhm = np.concatenate((x_fwhm,x_fwhm,x_fwhm_left,x_fwhm_right), axis=0)
-
-    return np.array([XX_fwhm-ThreeG_out.y_mean.value,YY_fwhm-ThreeG_out.x_mean.value])
-
+    ''' Plot Difference Data vs Fit '''
+    diff = (datacube.data-Zout)
+    diffmax = (np.array(diff.max(),-diff.min())).max()
+    fig, ax1 = plt.subplots(figsize=(6,6),subplot_kw=dict(projection=datacube.wcs))
+    im1 = ax1.imshow(diff, origin='lower', cmap=plt.cm.bwr_r,vmin=-diffmax,vmax=diffmax)
+    cbar1 = fig.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
+    ax1.set_xlim(max_pixel[1]-fov[1], max_pixel[1]+fov[1])
+    ax1.set_ylim(max_pixel[0]-fov[0], max_pixel[0]+fov[0])
+    ax1.set_title('Difference Data vs Fit - Yaw {0} arcmin & Pitch {1} arcmin'.format(str(XX),str(YY)),fontsize=12)
+    plt.savefig(SaveFolder+'{0}Yaw&{1}Pitch_Diff.png'.format(str(XX),str(YY)),transparent=True)
+    plt.close(fig)
 
 
 ''' Main program '''
 ## Path to the folder where to save all the outcomes:
-SaveFolder = '/Users/Kamilobu/Desktop/plots/'
+SaveFolder = '/Users/Kamilobu/Desktop/X2_OldB_PSF/'
 
 ## LogFile Creation:
 if os.path.exists(SaveFolder+'LogFile.txt'):
@@ -412,49 +341,30 @@ for key in str_indices_ds:
 nlist_000_XX = [0.5, -0.5, 1.0, -1.0, 2.0, -2.0, 3.0, -3.0, 5.0, -5.0, 7.0, -7.0, 9.0, -9.0]
 nlist_045_XX = [0.4, -0.4, 0.7, -0.7, 1.4, -1.4, 2.1, -2.1, 3.5, -3.5, 4.9, -4.9, 6.4, -6.4]
 
-FWHM_all, XX_all, YY_all = [], [], []
 ## On axis
 filename = '/Volumes/Pandora/FOXSI/OpCal/FOXSI-3_2018Mar/X2-10Shells/CCD/X2-No-WA-PSF/FOXSI3_X2_CCD_T6Sx6_10kV_0p02mA_0arcminX_0arcminY.fits'
-XX_all.append(0.0); YY_all.append(0.0)
-FWHM_all.append(RunFWHM(folder,0.0,0.0,filename,SaveFolder))
+RunFWHM(folder,0.0,0.0,filename,SaveFolder)
 
 ## 000 - The negative sign for XX is due to the mirroring flip of the CCD.
 for XX, filename in zip(nlist_000_XX,flist_000):
-    XX_all.append(-XX); YY_all.append(0.0)
-    FWHM_all.append(RunFWHM(folder,-XX,0.0,filename,SaveFolder))
+    RunFWHM(folder,-XX,0.0,filename,SaveFolder)
 
 ## 090
 for YY, filename in zip(nlist_000_XX,flist_090):
-    XX_all.append(0.0); YY_all.append(YY)
-    FWHM_all.append(RunFWHM(folder,0.0,YY,filename,SaveFolder))
+    RunFWHM(folder,0.0,YY,filename,SaveFolder)
 
 ## 045
 for XX,YY, filename in zip(nlist_045_XX,nlist_045_XX,flist_045):
-    XX_all.append(-XX); YY_all.append(YY)
-    FWHM_all.append(RunFWHM(folder,-XX,YY,filename,SaveFolder))
+    RunFWHM(folder,-XX,YY,filename,SaveFolder)
 
 ## 135
 for XX,YY, filename in zip(nlist_045_XX,nlist_045_XX,flist_135):
-    XX_all.append(-XX); YY_all.append(-YY)
-    FWHM_all.append(RunFWHM(folder,-XX,-YY,filename,SaveFolder))
+    RunFWHM(folder,-XX,-YY,filename,SaveFolder)
+
 
 ## Next three lines for testing:
 #filename = flist_045[-1]
 #XX = nlist_045_XX[-1]
 #YY = nlist_045_XX[-1]
 #RunFWHM(folder,-XX,YY,filename,SaveFolder)
-
-''' Plot of the FWHMs as function of the off-axis angles - with a factor of 6 '''
-scale=.1 ## this is 60*0.1 = 6 times the actual size of the FWHM
-fig, ax1 = plt.subplots(figsize=(80,80))
-for c in nlist_000_XX:
-    circle = plt.Circle((0, 0), c, color='gray', linestyle='dashed', fill=False)
-    ax1.add_artist(circle)
-for i in range(0,len(FWHM_all)):
-    ax1.scatter(scale*FWHM_all[i][0]+XX_all[i],scale*FWHM_all[i][1]+YY_all[i],c='blue',s=6)
-ax1.tick_params(labelsize=80,length=20, width=5)
-ax1.set_xlabel('Yaw [arcmin]',fontsize=80);ax1.set_ylabel('Pitch [arcmin]',fontsize=80)
-ax1.set_title('FWHM as a funtion of Off-axis angles',fontsize=140)
-plt.savefig(SaveFolder+'FWHM_vs_OffAxis.png')
-
-print('Happy Ending!')
+print('Final!')

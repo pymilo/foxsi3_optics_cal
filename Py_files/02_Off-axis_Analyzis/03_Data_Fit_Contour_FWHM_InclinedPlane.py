@@ -8,8 +8,9 @@ Goal: To fit Three 2D gaussians to the FOXSI3 SLF data corrected by darks.
 
 Input:  1. Fits file with SLF Data taken with the Andor CCD Camera.
         2. Dark fits files for correction.
+        3. Location where you want to save your output files:
 
-Run on terminal: ipython Data_Fit_Contour_FWHM.py
+Run on terminal: ipython 02_Data_Fit_Contour_FWHM.py
 
 Output:
             1. Flat plots of the three 2D-Gaussians in Log scale.
@@ -111,7 +112,7 @@ def RunFWHM(folder,XX,YY,filename,SaveFolder):
                     amp1=0, x1_stddev=0, y1_stddev=0, ## Gauss1 param
                     amp2=0, x2_stddev=0, y2_stddev=0, ## Gauss2 param
                     amp3=0, x3_stddev=0, y3_stddev=0, ## Gauss3 param
-                    offset=0): ## offset
+                    c0_0=0,c1_0=0,c2_0=0,c0_1=0,c0_2=0,c1_1=0,offset=0): ## Inclined plane
                     ''' Constrain positive values for the amplitudes '''
                     if amp1 < 0:
                         amp1 = 1e12
@@ -126,6 +127,7 @@ def RunFWHM(folder,XX,YY,filename,SaveFolder):
                     g3 = models.Gaussian2D(amp3, x_mean, y_mean, x3_stddev, y3_stddev, theta)
                     ''' Defining Offset '''
                     oset = models.Const2D(amplitude=offset)
+                    ip = models.Polynomial2D(degree=2,c0_0=0.,c1_0=0.,c2_0=0.,c0_1=0.,c0_2=0.,c1_1=0.)
                     return g1(x,y) + g2(x,y) + g3(x,y) + oset(x,y)
 
     ## Make X,Y,Z data for the TWO 2D-Gaussians:
@@ -139,7 +141,8 @@ def RunFWHM(folder,XX,YY,filename,SaveFolder):
                             amp3 = 0.32008*np.max(datacube.data),
                             x1_stddev=5.0171, y1_stddev=4.0530,
                             x2_stddev=0.6243, y2_stddev=1.2561,
-                            x3_stddev=1.5351, y3_stddev=2.2241,offset=0)
+                            x3_stddev=1.5351, y3_stddev=2.2241,
+                            c0_0=0,c1_0=0,c2_0=0,c0_1=0,c0_2=0,c1_1=0,offset=0)
 
     ## Finding best fit:
     fit2DG = fitting.LevMarLSQFitter()
@@ -332,7 +335,7 @@ def RunFWHM(folder,XX,YY,filename,SaveFolder):
 
 ''' Main program '''
 ## Path to the folder where to save all the outcomes:
-SaveFolder = '/Users/Kamilobu/Desktop/X2_OldB_PSF/'
+SaveFolder = '/Users/Kamilobu/Desktop/X2_OldB_PSF_IP/'
 
 ## LogFile Creation:
 if os.path.exists(SaveFolder+'LogFile.txt'):
@@ -371,28 +374,28 @@ CDat, CFit = RunFWHM(folder,0.0,0.0,filename,SaveFolder)
 CDat_all.append(CDat); CFit_all.append(CFit)
 
 ## 000 - The negative sign for XX is due to the mirroring flip of the CCD.
-for XX, filename in zip(nlist_000_XX,flist_000):
-    XX_all.append(-XX); YY_all.append(0.0)
-    CDat, CFit = RunFWHM(folder,-XX,0.0,filename,SaveFolder)
-    CDat_all.append(CDat); CFit_all.append(CFit)
+#for XX, filename in zip(nlist_000_XX,flist_000):
+#    XX_all.append(-XX); YY_all.append(0.0)
+#    CDat, CFit = RunFWHM(folder,-XX,0.0,filename,SaveFolder)
+#    CDat_all.append(CDat); CFit_all.append(CFit)
 
 ## 090
-for YY, filename in zip(nlist_000_XX,flist_090):
-    XX_all.append(0.0); YY_all.append(YY)
-    CDat, CFit = RunFWHM(folder,0.0,YY,filename,SaveFolder)
-    CDat_all.append(CDat); CFit_all.append(CFit)
+#for YY, filename in zip(nlist_000_XX,flist_090):
+#    XX_all.append(0.0); YY_all.append(YY)
+#    CDat, CFit = RunFWHM(folder,0.0,YY,filename,SaveFolder)
+#    CDat_all.append(CDat); CFit_all.append(CFit)
 
 ## 045
-for XX,YY, filename in zip(nlist_045_XX,nlist_045_XX,flist_045):
-    XX_all.append(-XX); YY_all.append(YY)
-    CDat, CFit = RunFWHM(folder,-XX,YY,filename,SaveFolder)
-    CDat_all.append(CDat); CFit_all.append(CFit)
+#for XX,YY, filename in zip(nlist_045_XX,nlist_045_XX,flist_045):
+#    XX_all.append(-XX); YY_all.append(YY)
+#    CDat, CFit = RunFWHM(folder,-XX,YY,filename,SaveFolder)
+#    CDat_all.append(CDat); CFit_all.append(CFit)
 
 ## 135
-for XX,YY, filename in zip(nlist_045_XX,nlist_045_XX,flist_135):
-    XX_all.append(-XX); YY_all.append(-YY)
-    CDat, CFit = RunFWHM(folder,-XX,-YY,filename,SaveFolder)
-    CDat_all.append(CDat); CFit_all.append(CFit)
+#for XX,YY, filename in zip(nlist_045_XX,nlist_045_XX,flist_135):
+#    XX_all.append(-XX); YY_all.append(-YY)
+#    CDat, CFit = RunFWHM(folder,-XX,-YY,filename,SaveFolder)
+#    CDat_all.append(CDat); CFit_all.append(CFit)
 
 ''' Plot of the Data Contours as function of the off-axis angles - with a factor of 6 '''
 scale=.05 ## this is 60*0.05 = 3 times the actual size of the contours

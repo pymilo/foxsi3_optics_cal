@@ -9,7 +9,7 @@ Goal: To fit Three 2D gaussians to the FOXSI3 SLF data corrected by darks.
 Input:  1. Fits file with SLF Data taken with the Andor CCD Camera.
         2. Dark fits files for correction.
 
-Run on terminal: ipython FWHM_OffAxis.py
+Run on terminal: ipython 01_FWHM_OffAxis.py
 
 Output:
             1. Flat plots of the three 2D-Gaussians in Log scale.

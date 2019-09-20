@@ -374,28 +374,28 @@ CDat, CFit = RunFWHM(folder,0.0,0.0,filename,SaveFolder)
 CDat_all.append(CDat); CFit_all.append(CFit)
 
 ## 000 - The negative sign for XX is due to the mirroring flip of the CCD.
-#for XX, filename in zip(nlist_000_XX,flist_000):
-#    XX_all.append(-XX); YY_all.append(0.0)
-#    CDat, CFit = RunFWHM(folder,-XX,0.0,filename,SaveFolder)
-#    CDat_all.append(CDat); CFit_all.append(CFit)
+for XX, filename in zip(nlist_000_XX,flist_000):
+    XX_all.append(-XX); YY_all.append(0.0)
+    CDat, CFit = RunFWHM(folder,-XX,0.0,filename,SaveFolder)
+    CDat_all.append(CDat); CFit_all.append(CFit)
 
 ## 090
-#for YY, filename in zip(nlist_000_XX,flist_090):
-#    XX_all.append(0.0); YY_all.append(YY)
-#    CDat, CFit = RunFWHM(folder,0.0,YY,filename,SaveFolder)
-#    CDat_all.append(CDat); CFit_all.append(CFit)
+for YY, filename in zip(nlist_000_XX,flist_090):
+    XX_all.append(0.0); YY_all.append(YY)
+    CDat, CFit = RunFWHM(folder,0.0,YY,filename,SaveFolder)
+    CDat_all.append(CDat); CFit_all.append(CFit)
 
 ## 045
-#for XX,YY, filename in zip(nlist_045_XX,nlist_045_XX,flist_045):
-#    XX_all.append(-XX); YY_all.append(YY)
-#    CDat, CFit = RunFWHM(folder,-XX,YY,filename,SaveFolder)
-#    CDat_all.append(CDat); CFit_all.append(CFit)
+for XX,YY, filename in zip(nlist_045_XX,nlist_045_XX,flist_045):
+    XX_all.append(-XX); YY_all.append(YY)
+    CDat, CFit = RunFWHM(folder,-XX,YY,filename,SaveFolder)
+    CDat_all.append(CDat); CFit_all.append(CFit)
 
 ## 135
-#for XX,YY, filename in zip(nlist_045_XX,nlist_045_XX,flist_135):
-#    XX_all.append(-XX); YY_all.append(-YY)
-#    CDat, CFit = RunFWHM(folder,-XX,-YY,filename,SaveFolder)
-#    CDat_all.append(CDat); CFit_all.append(CFit)
+for XX,YY, filename in zip(nlist_045_XX,nlist_045_XX,flist_135):
+    XX_all.append(-XX); YY_all.append(-YY)
+    CDat, CFit = RunFWHM(folder,-XX,-YY,filename,SaveFolder)
+    CDat_all.append(CDat); CFit_all.append(CFit)
 
 ''' Plot of the Data Contours as function of the off-axis angles - with a factor of 6 '''
 scale=.05 ## this is 60*0.05 = 3 times the actual size of the contours

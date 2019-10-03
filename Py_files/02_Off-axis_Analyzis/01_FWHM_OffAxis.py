@@ -351,7 +351,7 @@ def RunFWHM(folder, XX, YY, filename, SaveFolder):
     y_fwhm_down = np.array(y_fwhm_down_l)
     y_fwhm_up = np.array(y_fwhm_up_l)
 
-    ##Mapping along the vertical axis
+    #Mapping along the vertical axis
     y_fwhm2 = ThreeG_out.y_mean + (ThreeG_out.y_mean -
                                    y_fwhm_minmax(mask, Yt)[0]) * np.sin((np.pi / 2) * np.linspace(-1, 1, npoints))
     x_fwhm_right_l, x_fwhm_left_l = [], []

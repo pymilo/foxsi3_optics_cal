@@ -1,0 +1,6 @@
+# This file lists all files git ignores at pulling/pushing
+# ignore all logs
+*.log
+.ipynb_checkpoints
+Py_files/.idea
+

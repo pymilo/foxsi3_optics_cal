@@ -3,6 +3,5 @@
 *.log
 .ipynb_checkpoints
 Py_files/.idea
-
 Py_files/.idea/inspectionProfiles/Project_Default.xml
 *.xml

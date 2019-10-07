@@ -34,7 +34,6 @@ from astropy.io import fits as pyfits
 from ndcube import NDCube
 from astropy.visualization import ImageNormalize, MinMaxInterval, LogStretch, LinearStretch
 from astropy.modeling import models, fitting
-from mpl_toolkits import mplot3d
 from scipy.optimize import brentq
 import astropy.units as u
 import numpy as np
@@ -159,13 +158,10 @@ def RunFWHM(folder,XX,YY,filename,SaveFolder):
     g3 = models.Gaussian2D(ThreeG_out.amp3.value, ThreeG_out.x_mean.value,
                             ThreeG_out.y_mean.value, ThreeG_out.x3_stddev.value,
                             ThreeG_out.y3_stddev.value, ThreeG_out.theta.value)
-    ### Individual Gaussian Arrays:
-    G1 = g1(Xg, Yg)
-    G2 = g2(Xg, Yg)
-    G3 = g3(Xg, Yg)
+    # Individual Gaussian Arrays:
 
     ''' R^2 function definition '''
-    ## More info: https://en.wikipedia.org/wiki/Coefficient_of_determination
+    # More info: https://en.wikipedia.org/wiki/Coefficient_of_determination
     def RSquared(data,model):
         ## The closest to 1, the better is the fit.
         ss_err=(model.fit_info['fvec']**2).sum()
@@ -298,7 +294,7 @@ def RunFWHM(folder,XX,YY,filename,SaveFolder):
     cbar1.add_lines(CFWHM_fit)
     cbar1.ax.plot([0, 1], [0.905,0.905], c='blue')
     fig.suptitle('Yaw {0} arcmin & Pitch {1} arcmin'.format(str(XX),str(YY)), fontsize=16)
-    plt.savefig(SaveFolder+'{0}Yaw&{1}Pitch_Flat.png'.format(str(XX),str(YY)),transparent=True)
+    plt.savefig(SaveFolder+'{0}Yaw&{1}Pitch_Flat.png'.format(str(XX),str(YY)), transparent=True)
     plt.close(fig)
 
     ''' Plot Difference Data vs Fit '''
@@ -316,7 +312,7 @@ def RunFWHM(folder,XX,YY,filename,SaveFolder):
     levels = np.array([.2,.4,.6,.8,.92]) ## Set level at half the maximum
     CFWHM_dat = plt.contour(datacube.data, levels,colors='black') ## Generate contour Data
     CFWHM_fit = plt.contour(Zout, levels,colors='black') ## Generate contour Fit
-    plt.close() ## needed to avoid ploting contours at this time.
+    plt.close()  # needed to avoid plotting contours at this time.
 
     CX_Dat, CY_Dat = [], []
     for c in CFWHM_dat.collections:

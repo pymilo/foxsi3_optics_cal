@@ -8,16 +8,21 @@ Goal: To fit Three 2D gaussians to the FOXSI3 SLF data corrected by darks.
 
 Input:  1. Fits file with SLF Data taken with the Andor CCD Camera.
         2. Dark fits files for correction.
+        3. folder path: Where all FITS files are located.
+        4. SaveFolder Path: Folder where to save all images.
+
 
 Run on terminal: ipython 01_FWHM_OffAxis.py
 
 Output:
-            1. Flat plots of the three 2D-Gaussians in Log scale.
-            2. 3D plots of the three 2D-Gaussians.
-            3. Plot of the difference Data vs. Fit in log scale.
-            4. Print out the parameters for the three 2D-Gaussians and the offset.
-            5. Plot of the FWHM as a function of the azimuthal angle
-            6. Compiled Plot of the ALL FWHMs as a function of the Off-axis angles [FWHM_vs_OffAxis.png].
+            1. Figure including
+                i. Lab-PSF in Log scale with contours on top.
+                ii. Map differences between Lab-Data and best Fit.
+            2. Figure of the FWHM as a function of the azimuthal angle in
+                i. A plot from 0 to 90 degrees.
+                ii. Contours based on best fit.
+            3. LogFile of ALL the parameters for best fit.
+            4. Compiled Plot of the ALL FWHMs as a function of the Off-axis angles [FWHM_vs_OffAxis.png].
 
 Date: Oct, 2019
 Author: Milo
@@ -31,6 +36,7 @@ from astropy.visualization import ImageNormalize, MinMaxInterval, LogStretch
 from astropy import wcs
 from astropy.io import fits as pyfits
 from scipy.optimize import brentq
+from datetime import datetime
 import astropy.units as u
 import numpy as np
 import scipy.stats
@@ -38,6 +44,7 @@ import matplotlib.pyplot as plt
 import glob
 import os
 import logging
+import pdb
 
 ''' Definition of Two 2D-Gaussians function '''
 
@@ -115,38 +122,50 @@ def y_fwhm_minmax(mask, Yt):
     return (yrange[0], yrange[-1])
 
 
-def FWHMvsAnglePlot(XX, YY, phi, phis, r, plate_scale, SaveFolder):
-    fig1, ax = plt.subplots(figsize=(9, 6))
-    ax.plot(np.rad2deg(phis) + phi, 2 * r * plate_scale, 'o')
-    ax.set_xlim(0, 90)
-    ax.annotate('Max = {0}"'.format(round(r.max() * 2 * plate_scale.value, 3)), xy=(55, 3.4), fontsize=20)
-    ax.annotate('Mean = {0}"'.format(round(r.mean() * 2 * plate_scale.value, 3)), xy=(55, 2.6), fontsize=20,
-                color='#1f77b4')
-    ax.annotate('Min = {0}"'.format(round(r.min() * 2 * plate_scale.value, 3)), xy=(55, 1.8), fontsize=20)
-    ax.axhline(round(r.mean() * 2 * plate_scale.value, 3), linestyle='dashed')
-    ax.set_title('FWHM vs azimuthal angle - {0}Yaw&{1}Pitch'.format(XX, YY), fontsize=18)
-    ax.xaxis.set_tick_params(labelsize=16)
-    ax.yaxis.set_tick_params(labelsize=16)
-    ax.set_xlabel('Azimuthal angle [degrees]', fontsize=20)
-    ax.set_ylabel('FWHM [arcsec]', fontsize=20)
-    ax.set_ylim(0, 12)
-    fig1.savefig(SaveFolder + '{0}Yaw&{1}Pitch_FWHMvsAngle.eps'.format(XX, YY))
+def FWHMvsAnglePlot(XX, YY, phi, phis, r, plate_scale, wcs_dict, SaveFolder, x_mean, y_mean,
+                    y_fwhm_down, y_fwhm_up, x_fwhm, y_fwhm2, x_fwhm_left, x_fwhm_right):
+    fig1 = plt.figure(figsize=(12, 6))
+    ax1 = fig1.add_subplot(121)
+    ax1.plot(np.rad2deg(phis) + phi, 2 * r * plate_scale, 'o')
+    ax1.set_xlim(0, 90)
+    ax1.axhline(round(r.max() * 2 * plate_scale.value, 3), linestyle='dashed', color='gray', label='Max = {0}"'.format(round(r.max() * 2 * plate_scale.value, 3)))
+    ax1.axhline(round((r.max()+r.min()) * 0.5 * 2 * plate_scale.value, 3), linestyle='dashed', color='#1f77b4', label='Mean = {0}"'.format(round((r.max()+r.min()) * 0.5 * 2 * plate_scale.value, 3)))
+    ax1.axhline(round(r.min() * 2 * plate_scale.value, 3), linestyle='dashed', color='gray', label='Min = {0}"'.format(round(r.min() * 2 * plate_scale.value, 3)))
+    ax1.xaxis.set_tick_params(labelsize=16)
+    ax1.yaxis.set_tick_params(labelsize=16)
+    ax1.set_xlabel('Azimuthal angle [degrees]', fontsize=20)
+    ax1.set_ylabel('FWHM [arcsec]', fontsize=20)
+    ax1.set_ylim(0, 15)
+    leg = ax1.legend(loc='best', prop={'size': 16})
+    for artist, text in zip(leg.legendHandles, leg.get_texts()):
+        try:
+            col = artist.get_color()
+        except:
+            col = artist.get_facecolor()
+        if isinstance(col, np.ndarray):
+            col = col[0]
+        text.set_color(col)
+    wcs_dict['CRPIX1'] = y_mean.value + 1
+    wcs_dict['CRPIX2'] = x_mean.value + 1
+    input_wcs = wcs.WCS(wcs_dict)
+    ax2 = fig1.add_subplot(122, projection=input_wcs)
+    ax2.scatter(y_fwhm_down, x_fwhm, c='#1f77b4', s=3)
+    ax2.scatter(y_fwhm_up, x_fwhm, c='#1f77b4', s=3)
+    ax2.scatter(y_fwhm2, x_fwhm_left, c='#1f77b4', s=3)
+    ax2.scatter(y_fwhm2, x_fwhm_right, c='#1f77b4', s=3)
+    fov2 = 4
+    ax2.set_xlim(y_mean.value-fov2, y_mean.value+fov2)
+    ax2.set_ylim(x_mean.value-fov2, x_mean.value+fov2)
+    ax2.axhline(x_mean.value, linestyle='dotted', linewidth=1, color='gray')
+    ax2.axvline(y_mean.value, linestyle='dotted', linewidth=1, color='gray')
+    for r_circle in np.arange(1, 15):
+        circle_i = plt.Circle((y_mean.value, x_mean.value), r_circle / plate_scale.value, color='gray', linestyle='dotted', linewidth=0.5, fill=False)
+        ax2.add_artist(circle_i)
+        ax2.annotate(str(r_circle), xy=(.02+y_mean.value, .02+x_mean.value+r_circle/plate_scale.value), fontsize=6, color='gray')
+    fig1.suptitle('FWHM vs azimuthal angle for Yaw {0} arcmin & Pitch {1} arcmin'.format(str(XX), str(YY)), fontsize=18)
+    fig1.savefig(SaveFolder + '{0}Yaw&{1}Pitch_FWHMvsAngle.pdf'.format(XX, YY))
     plt.close(fig1)
-
-
-def PlotDiff(XX, YY, datacube, Zout, SaveFolder):
-    """ Plot Difference Data vs Fit
-    :type datacube: Raw data corrected by darks.
-    """
-    diff = (datacube.data - Zout)
-    diffmax = (np.array(diff.max(), -diff.min())).max()
-    fig1, ax1 = plt.subplots(figsize=(6, 6), subplot_kw=dict(projection=datacube.wcs))
-    im1 = ax1.imshow(diff, origin='lower', cmap=plt.cm.bwr_r, vmin=-diffmax, vmax=diffmax)
-    fig1.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
-    ax1.set_title('Difference Data vs Fit', fontsize=18)
-    fig1.suptitle('Yaw {0} arcmin & Pitch {1} arcmin'.format(str(XX), str(YY)), fontsize=18)
-    plt.savefig(SaveFolder + '{0}Yaw&{1}Pitch_Diff.eps'.format(str(XX), str(YY)), transparent=True)
-    plt.close(fig1)
+    return 2*r*plate_scale.value
 
 def RunAll(XX, YY, filename, SaveFolder):
     """
@@ -180,8 +199,8 @@ def RunAll(XX, YY, filename, SaveFolder):
     data = np.average(fits[0].data, axis=0) - np.average(darkfits[0].data, axis=0)
     smax_pixel = np.unravel_index(np.argmax(data), data.shape)
     fov = [int(36 / binning), int(36 / binning)]  # [px,px]
-    sdata = data[smax_pixel[0]-fov[0]:smax_pixel[0]+fov[0],
-            smax_pixel[1]-fov[1]:smax_pixel[1]+fov[1]]/data.max()
+    sdata = data[smax_pixel[0] - fov[0]:smax_pixel[0] + fov[0],
+            smax_pixel[1] - fov[1]:smax_pixel[1] + fov[1]] / data.max()
     max_pixel = np.unravel_index(np.argmax(sdata), sdata.shape)
 
     ''' Create the WCS information '''
@@ -192,8 +211,8 @@ def RunAll(XX, YY, filename, SaveFolder):
         'CUNIT2': 'arcsec',
         'CDELT1': plate_scale.value,  # Plate scale in arcsec
         'CDELT2': plate_scale.value,  # Plate scale in arcsec
-        'CRPIX1': 0,
-        'CRPIX2': 0,
+        'CRPIX1': max_pixel[0]+1,
+        'CRPIX2': max_pixel[1]+1,
         'CRVAL1': 0,
         'CRVAL2': 0,
         'NAXIS1': sdata.shape[0],
@@ -309,33 +328,37 @@ def RunAll(XX, YY, filename, SaveFolder):
     r = np.concatenate((r_up, r_down, r_right, r_left))
     phis = np.concatenate((phi_up, phi_down, phi_right, phi_left))
     # Plot FWHM vs Angle:
-    FWHMvsAnglePlot(XX, YY, phi, phis, r, plate_scale, SaveFolder)
-    # Plot Difference:
-    PlotDiff(XX, YY, datacube, Zout, SaveFolder)
+    FWHMr = FWHMvsAnglePlot(XX, YY, phi, phis, r, plate_scale, wcs_dict, SaveFolder, ThreeG_out.x_mean, ThreeG_out.y_mean,
+                            y_fwhm_down, y_fwhm_up, x_fwhm, y_fwhm2, x_fwhm_left, x_fwhm_right)
     ''' Plotting '''
     # Create ImageNormalize objects:
     normLogT = ImageNormalize(datacube.data, interval=MinMaxInterval(), stretch=LogStretch())
-    fig1, ax1 = plt.subplots(figsize=(6, 6), subplot_kw=dict(projection=datacube.wcs))
-    # Plot of everything together:
-    im1 = ax1.imshow(datacube.data, origin='lower', cmap=plt.cm.viridis, norm=normLogT, vmin=0.0, vmax=1.0)
-    ax1.scatter(y_fwhm_down, x_fwhm, c='blue', s=3)
-    ax1.scatter(y_fwhm_up, x_fwhm, c='blue', s=3)
-    ax1.scatter(y_fwhm2, x_fwhm_left, c='blue', s=3)
-    ax1.scatter(y_fwhm2, x_fwhm_right, c='blue', s=3)
-    ax1.set_title('Data (black), Fit (white) & FWHM (blue) on top of Lab-PSF', fontsize=13)
+    fig1, axs = plt.subplots(1, 2,figsize=(12, 6), subplot_kw=dict(projection=datacube.wcs))
+    # Plot of everything together [contours]:
+    im1 = axs[0].imshow(datacube.data, origin='lower', cmap=plt.cm.viridis, norm=normLogT, vmin=0.0, vmax=1.0)
+    axs[0].scatter(y_fwhm_down, x_fwhm, c='blue', s=3)
+    axs[0].scatter(y_fwhm_up, x_fwhm, c='blue', s=3)
+    axs[0].scatter(y_fwhm2, x_fwhm_left, c='blue', s=3)
+    axs[0].scatter(y_fwhm2, x_fwhm_right, c='blue', s=3)
+    axs[0].set_title('Lab-Data (black), Fit (white) & FWHM (blue) on top of Lab-PSF', fontsize=12)
     levels = np.array([.01, .1, .25, .5, .75, .9])  # Set level at half the maximum
-    CFWHM_dat = ax1.contour(datacube.data, levels, colors='black')  # Generate contour Data
-    CFWHM_fit = ax1.contour(Zout, levels, colors='white')  # Generate contour Fit
-    cbar1 = fig1.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
+    CFWHM_dat = axs[0].contour(datacube.data, levels, colors='black')  # Generate contour Data
+    CFWHM_fit = axs[0].contour(Zout, levels, colors='white')  # Generate contour Fit
+    cbar1 = fig1.colorbar(im1, ax=axs[0], fraction=0.046, pad=0.04)
     cbar1.add_lines(CFWHM_fit)
     cbar1.ax.plot([0, 1], [0.9, 0.9], c='blue')
+    # Differences Plot
+    diff = (datacube.data - Zout)
+    diffmax = (np.array(diff.max(), -diff.min())).max()
+    im2 = axs[1].imshow(diff, origin='lower', cmap=plt.cm.bwr_r, vmin=-diffmax, vmax=diffmax)
+    fig1.colorbar(im2, ax=axs[1], fraction=0.046, pad=0.04)
+    axs[1].set_title('Difference Lab-Data vs Fit', fontsize=18)
     fig1.suptitle('Yaw {0} arcmin & Pitch {1} arcmin'.format(str(XX), str(YY)), fontsize=18)
-    plt.savefig(SaveFolder + '{0}Yaw&{1}Pitch_Contours.eps'.format(str(XX), str(YY)), transparent=True)
+    plt.savefig(SaveFolder + '{0}Yaw&{1}Pitch_Contours.pdf'.format(str(XX), str(YY)), transparent=True)
     plt.close(fig1)
 
     logging.info('FWHM for {0} arcmin in Yaw and {1} arcmin in Pitch:'.format(str(XX), str(YY)))
-    logging.info(
-        'The average FWHM over the azimuthal angle is {0} arcsecs.'.format(round(2 * r.mean() * plate_scale.value, 4)))
+    logging.info('The average FWHM over the azimuthal angle is {0} arcsecs.'.format(round(2 * r.mean() * plate_scale.value, 4)))
 
     XX_fwhm = np.concatenate((y_fwhm_down, y_fwhm_up, y_fwhm2, y_fwhm2), axis=0)
     YY_fwhm = np.concatenate((x_fwhm, x_fwhm, x_fwhm_left, x_fwhm_right), axis=0)
@@ -344,17 +367,18 @@ def RunAll(XX, YY, filename, SaveFolder):
     CX_Dat, CY_Dat = [], []
     for c in CFWHM_dat.collections:
         v = c.get_paths()[0].vertices
-        CX_Dat.append(v[:, 0]-ThreeG_out.x_mean.value)
-        CY_Dat.append(v[:, 1]-ThreeG_out.y_mean.value)
+        CX_Dat.append(v[:, 0] - ThreeG_out.x_mean.value)
+        CY_Dat.append(v[:, 1] - ThreeG_out.y_mean.value)
 
     CX_Fit, CY_Fit = [], []
     for c in CFWHM_fit.collections:
         v = c.get_paths()[0].vertices
-        CX_Fit.append(v[:, 0]-ThreeG_out.x_mean.value)
-        CY_Fit.append(v[:, 1]-ThreeG_out.y_mean.value)
+        CX_Fit.append(v[:, 0] - ThreeG_out.x_mean.value)
+        CY_Fit.append(v[:, 1] - ThreeG_out.y_mean.value)
 
     return [np.array([XX_fwhm - ThreeG_out.y_mean.value, YY_fwhm - ThreeG_out.x_mean.value]),
-            ((CX_Dat, CY_Dat), (CX_Fit, CY_Fit))]
+            ((CX_Dat, CY_Dat), (CX_Fit, CY_Fit)), FWHMr]
+
 
 ''' Main program '''
 # Path to the folder where to save all the outcomes:
@@ -363,8 +387,8 @@ SaveFolder = '/Users/Kamilobu/Desktop/test/'
 # LogFile Creation:
 if os.path.exists(SaveFolder + 'LogFile.log'):
     os.remove(SaveFolder + 'LogFile.log')
-logging.basicConfig(filename=SaveFolder + 'LogFile.log', level=logging.INFO)
-logging.info('LogFile')
+logging.basicConfig(filename=SaveFolder + 'LogFile_'+datetime.now().strftime('%Y%m%d-%H%M')+'.log', level=logging.INFO)
+logging.info('LogFile - '+datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
 # Looping over the whole set of data.
 folder = '/Volumes/Pandora/FOXSI/OpCal/FOXSI-3_2018Mar/X1-7Shells_NewBlockers/CCD/PSF/'
@@ -372,7 +396,6 @@ str_indices_vh = {'0p5a': '', '1a': '', '2a': '', '3a': '', '5a': '', '7a': '', 
 str_indices_ds = {'0p4a': '', '0p7a': '', '1p4a': '', '2p1a': '', '3p5a': '', '4p9a': '', '6p4a': ''}
 
 flist_000, flist_090, flist_045, flist_135 = [], [], [], []
-# flist_000.append(glob.glob(data_dir + '*0a*' + '*0a*.fits')[0])
 for key in str_indices_vh:
     flist_000.append(glob.glob(folder + '*+' + key + '*0a*.fits')[0])
     flist_000.append(glob.glob(folder + '*-' + key + '*0a*.fits')[0])
@@ -388,73 +411,83 @@ for key in str_indices_ds:
 nlist_000_XX = [0.5, -0.5, 1.0, -1.0, 2.0, -2.0, 3.0, -3.0, 5.0, -5.0, 7.0, -7.0, 9.0, -9.0]
 nlist_045_XX = [0.4, -0.4, 0.7, -0.7, 1.4, -1.4, 2.1, -2.1, 3.5, -3.5, 4.9, -4.9, 6.4, -6.4]
 
-FWHM_all, CDat_all, CFit_all, XX_all, YY_all = [], [], [], [], []
+FWHM_all, CDat_all, CFit_all, XX_all, YY_all, R_all = [], [], [], [], [], []
 # On axis
 filename = '/Volumes/Pandora/FOXSI/OpCal/FOXSI-3_2018Mar/X1-7Shells_NewBlockers/CCD/PSF/FOXSI3_X1_NewBlockers_CCD_T9Sx6_10kV_0p02mA_0arcminX_0arcminY.fits'
 XX_all.append(0.0)
 YY_all.append(0.0)
-FWHMi, (CDat, CFit) = RunAll(0.0, 0.0, filename, SaveFolder)
+FWHMi, (CDat, CFit), FWHMr = RunAll(0.0, 0.0, filename, SaveFolder)
 FWHM_all.append(FWHMi)
 CDat_all.append(CDat)
 CFit_all.append(CFit)
+R_all.append(FWHMr)
 
 # 000 - The negative sign for XX is due to the mirroring flip of the CCD.
 for XX, filename in zip(nlist_000_XX, flist_000):
     XX_all.append(-XX)
     YY_all.append(0.0)
-    FWHMi, (CDat, CFit) = RunAll(-XX, 0.0, filename, SaveFolder)
+    FWHMi, (CDat, CFit), FWHMr = RunAll(-XX, 0.0, filename, SaveFolder)
     FWHM_all.append(FWHMi)
     CDat_all.append(CDat)
     CFit_all.append(CFit)
+    R_all.append(FWHMr)
 
 # 090
 for YY, filename in zip(nlist_000_XX, flist_090):
     XX_all.append(0.0)
     YY_all.append(YY)
-    FWHMi, (CDat, CFit) = RunAll(0.0, YY, filename, SaveFolder)
+    FWHMi, (CDat, CFit), FWHMr = RunAll(0.0, YY, filename, SaveFolder)
     FWHM_all.append(FWHMi)
     CDat_all.append(CDat)
     CFit_all.append(CFit)
+    R_all.append(FWHMr)
 
 # 045
 for XX, YY, filename in zip(nlist_045_XX, nlist_045_XX, flist_045):
     XX_all.append(-XX)
     YY_all.append(YY)
-    FWHMi, (CDat, CFit) = RunAll(-XX, YY, filename, SaveFolder)
+    FWHMi, (CDat, CFit), FWHMr = RunAll(-XX, YY, filename, SaveFolder)
     FWHM_all.append(FWHMi)
     CDat_all.append(CDat)
     CFit_all.append(CFit)
+    R_all.append(FWHMr)
 
 # 135
 for XX, YY, filename in zip(nlist_045_XX, nlist_045_XX, flist_135):
     XX_all.append(-XX);
     YY_all.append(-YY)
-    FWHMi, (CDat, CFit) = RunAll(-XX, -YY, filename, SaveFolder)
+    FWHMi, (CDat, CFit), FWHMr = RunAll(-XX, -YY, filename, SaveFolder)
     FWHM_all.append(FWHMi)
     CDat_all.append(CDat)
     CFit_all.append(CFit)
+    R_all.append(FWHMr)
 
-# Next three lines for testing:
-# filename = flist_045[-1]
-# XX = nlist_045_XX[-1]
-# YY = nlist_045_XX[-1]
-# RunFWHM(folder,-XX,YY,filename,SaveFolder)
+# # Next three lines for testing:
+# filename = '/Volumes/Pandora/FOXSI/OpCal/FOXSI-3_2018Mar/X1-7Shells_NewBlockers/CCD/PSF/FOXSI3_X1_NewBlockers_CCD_T9Sx6_10kV_0p02mA_0arcminX_0arcminY.fits'
+# XX_all.append(0.0)
+# YY_all.append(0.0)
+# FWHMi, (CDat, CFit) = RunAll(0.0, 0.0, filename, SaveFolder)
+# FWHM_all.append(FWHMi)
+# CDat_all.append(CDat)
+# CFit_all.append(CFit)
+# R_all.append(FWHMr)
 
 ''' Plot of the FWHMs as function of the off-axis angles - with a factor of 6 '''
-scale = 60.  # this is 60*0.1 = 6 times the actual size of the FWHM
+Amplification = 0.2
+scale = 60.*Amplification  # this is 5 times larger than the actual size of the FWHM.
 fig1, ax1 = plt.subplots(figsize=(80, 80))
 for c in nlist_000_XX:
     circle = plt.Circle((0, 0), c, color='gray', linestyle='dashed', fill=False)
     ax1.add_artist(circle)
 for i in range(0, len(FWHM_all)):
-    ax1.scatter(FWHM_all[i][0]/scale + XX_all[i], FWHM_all[i][1]/scale + YY_all[i], c='blue', s=8)
+    ax1.scatter(FWHM_all[i][0] / scale + XX_all[i], FWHM_all[i][1] / scale + YY_all[i], c='blue', s=8)
 ax1.tick_params(labelsize=80, length=20, width=5)
 ax1.set_xlabel('Yaw [arcmin]', fontsize=80)
 ax1.set_ylabel('Pitch [arcmin]', fontsize=80)
-ax1.set_title('FWHM as a function of Off-axis angles', fontsize=140)
+ax1.set_title('FWHM as a function of Off-axis angles [{0}x Amplified]'.format(round(1/Amplification, 0)), fontsize=140)
 ax1.set_ylim(-10, 10)
 ax1.set_xlim(-10, 10)
-plt.savefig(SaveFolder + 'FWHM_vs_OffAxis.eps')
+plt.savefig(SaveFolder + 'FWHM_vs_OffAxis.pdf')
 plt.close(fig1)
 
 # Plot of the Data Contours as function of the off-axis angles - with a factor of 6
@@ -465,7 +498,7 @@ for c in nlist_000_XX:
     ax1.add_artist(circle)
 for i in range(0, len(CDat_all)):
     for j in range(0, len(CDat_all[0][0])):
-        ax1.plot(np.array(CDat_all[i][0][j]/scale) + XX_all[i], np.array(CDat_all[i][1][j]/scale) + YY_all[i],
+        ax1.plot(np.array(CDat_all[i][0][j] / scale) + XX_all[i], np.array(CDat_all[i][1][j] / scale) + YY_all[i],
                  color='r')
 ax1.tick_params(labelsize=80, length=20, width=5)
 ax1.set_xlabel('Yaw [arcmin]', fontsize=80)
@@ -473,7 +506,7 @@ ax1.set_ylabel('Pitch [arcmin]', fontsize=80)
 ax1.set_title('Data Contours as a function of Off-axis angles', fontsize=140)
 ax1.set_ylim(-10, 10)
 ax1.set_xlim(-10, 10)
-fig1.savefig(SaveFolder + 'DatCont_vs_OffAxis.eps')
+fig1.savefig(SaveFolder + 'DatCont_vs_OffAxis.pdf')
 plt.close(fig1)
 
 ''' Plot of the FWHMs as function of the off-axis angles - with a factor of 6 '''
@@ -484,7 +517,7 @@ for c in nlist_000_XX:
     ax2.add_artist(circle)
 for i in range(0, len(CFit_all)):
     for j in range(0, len(CFit_all[0][0])):
-        ax2.plot(np.array(CFit_all[i][0][j]/scale) + XX_all[i], np.array(CFit_all[i][1][j]/scale) + YY_all[i],
+        ax2.plot(np.array(CFit_all[i][0][j] / scale) + XX_all[i], np.array(CFit_all[i][1][j] / scale) + YY_all[i],
                  color='r')
 ax2.tick_params(labelsize=80, length=20, width=5)
 ax2.set_xlabel('Yaw [arcmin]', fontsize=80)
@@ -492,7 +525,106 @@ ax2.set_ylabel('Pitch [arcmin]', fontsize=80)
 ax2.set_ylim(-10, 10)
 ax2.set_xlim(-10, 10)
 ax2.set_title('Fit Contours as a function of Off-axis angles', fontsize=140)
-fig2.savefig(SaveFolder + 'FitCont_vs_OffAxis.eps')
+fig2.savefig(SaveFolder + 'FitCont_vs_OffAxis.pdf')
 plt.close(fig2)
 
+
+''' Plot of Min & Max of the FWHMs as function of the off-axis angles '''
+
+fwhm_mean,fwhm_min,fwhm_max = [],[],[]
+for f in R_all:
+    fwhm_mean.append((f.max()+f.min())/2.)
+    fwhm_min.append(f.min())
+    fwhm_max.append(f.max())
+
+Mean000 = np.take_along_axis(np.array(fwhm_mean[0:15]),np.argsort(XX_all[0:15], axis=0),axis=0)
+Min000  = np.take_along_axis(np.array(fwhm_min[0:15]),np.argsort(XX_all[0:15], axis=0),axis=0)
+Max000  = np.take_along_axis(np.array(fwhm_max[0:15]),np.argsort(XX_all[0:15], axis=0),axis=0)
+
+Mean090 = np.take_along_axis(np.array(fwhm_mean[15:29]),np.argsort(YY_all[15:29], axis=0),axis=0)
+Min090  = np.take_along_axis(np.array(fwhm_min[15:29]),np.argsort(YY_all[15:29], axis=0),axis=0)
+Max090  = np.take_along_axis(np.array(fwhm_max[15:29]),np.argsort(YY_all[15:29], axis=0),axis=0)
+
+Mean045 = np.take_along_axis(np.array(fwhm_mean[29:43]),np.argsort(XX_all[29:43], axis=0),axis=0)
+Min045  = np.take_along_axis(np.array(fwhm_min[29:43]),np.argsort(XX_all[29:43], axis=0),axis=0)
+Max045  = np.take_along_axis(np.array(fwhm_max[29:43]),np.argsort(XX_all[29:43], axis=0),axis=0)
+
+Mean135 = np.take_along_axis(np.array(fwhm_mean[43:57]),np.argsort(XX_all[43:57], axis=0),axis=0)
+Min135  = np.take_along_axis(np.array(fwhm_min[43:57]),np.argsort(XX_all[43:57], axis=0),axis=0)
+Max135  = np.take_along_axis(np.array(fwhm_max[43:57]),np.argsort(XX_all[43:57], axis=0),axis=0)
+
+FMean = np.insert((np.delete(Mean000, 7) + Mean090 + Mean045 + Mean135)/4, 7, Mean000[7])
+FMin  = np.insert(np.min([np.delete(Min000,7),Min090,Min045,Min135],axis=0), 7, Min000[7])
+FMax  = np.insert(np.max([np.delete(Max000,7),Max090,Max045,Max135],axis=0), 7, Max000[7])
+
+fig, axs = plt.subplots(5, 1, sharex=True, sharey=True, figsize=(12,15))
+fig.subplots_adjust(hspace=0.01)
+fig.suptitle('FWHM range vs. off-axis angles over every azimuthal axis',fontsize=18,y=0.92)
+## 00
+axs[0].plot(np.sort(XX_all[0:15]), Mean000,
+            'o',c='firebrick',label='mean at 0$^\circ$')
+axs[0].plot(np.sort(XX_all[0:15]), Min000,
+            '+',c='firebrick',label='min & max')
+axs[0].plot(np.sort(XX_all[0:15]), Max000,
+            '+',c='firebrick')
+axs[0].fill_between(np.sort(XX_all[0:15]), Min000, Max000, alpha=0.2,color='firebrick',linewidth=0)
+axs[0].set_ylim(0,15)
+axs[0].set_xlabel('Off-axis angle [arcmin]',fontsize=18)
+axs[0].set_ylabel('FWHM [arcsec]',fontsize=14)
+axs[0].legend(loc=1)
+# 90
+axs[1].plot(np.sort(YY_all[15:29]), Mean090,
+            'o',c='green',label='mean at 90$^\circ$')
+axs[1].plot(np.sort(YY_all[15:29]), Min090,
+            '+',c='green',label='min & max')
+axs[1].plot(np.sort(YY_all[15:29]), Max090,
+            '+',c='green')
+axs[1].fill_between(np.sort(YY_all[15:29]), Min090, Max090, alpha=0.2,color='green',linewidth=0)
+axs[1].set_ylim(0,15)
+axs[1].set_xlabel('Off-axis angle [arcmin]',fontsize=18)
+axs[1].set_ylabel('FWHM [arcsec]',fontsize=14)
+axs[1].legend(loc=1)
+# 45
+axs[2].plot(np.sqrt(2)*np.sort(XX_all[29:43]), Mean045,
+            'o',c='darkblue',label='mean at 45$^\circ$')
+axs[2].plot(np.sqrt(2)*np.sort(XX_all[29:43]), Min090,
+            '+',c='darkblue',label='min & max')
+axs[2].plot(np.sqrt(2)*np.sort(XX_all[29:43]), Max045,
+            '+',c='darkblue')
+axs[2].fill_between(np.sqrt(2)*np.sort(XX_all[29:43]), Min090, Max045, alpha=0.2,color='darkblue',linewidth=0)
+axs[2].set_ylim(0,15)
+axs[2].set_xlabel('Off-axis angle [arcmin]', fontsize=18)
+axs[2].set_ylabel('FWHM [arcsec]', fontsize=14)
+axs[2].legend(loc=1)
+# 135
+axs[3].plot(np.sqrt(2)*np.sort(XX_all[43:57]), Mean135,
+            'o',c='orange',label='mean at 135$^\circ$')
+axs[3].plot(np.sqrt(2)*np.sort(XX_all[43:57]), Min135,
+            '+',c='orange',label='min & max')
+axs[3].plot(np.sqrt(2)*np.sort(XX_all[43:57]), Max135,
+            '+',c='orange')
+axs[3].fill_between(np.sqrt(2)*np.sort(XX_all[43:57]),Min135, Max135, alpha=0.2,color='orange',linewidth=0)
+axs[2].set_ylim(0,15)
+axs[3].set_xlabel('Off-axis angle [arcmin]', fontsize=18)
+axs[3].set_ylabel('FWHM [arcsec]', fontsize=14)
+axs[3].set_xlim(-10,10)
+axs[3].legend(loc=1)
+# Average
+axs[4].plot(np.sort(XX_all[0:15]), FMean,
+            'o',c='gray',label='mean of All')
+axs[4].plot(np.sort(XX_all[0:15]), FMin,
+            '+',c='gray',label='min & max')
+axs[4].plot(np.sort(XX_all[0:15]), FMax,
+            '+',c='gray')
+axs[4].fill_between(np.sort(XX_all[0:15]), FMin, FMax, alpha=0.2,color='gray',linewidth=0)
+axs[4].set_ylim(0,15)
+axs[4].set_xlabel('Off-axis angle [arcmin]',fontsize=18)
+axs[4].set_ylabel('FWHM [arcsec]',fontsize=14)
+axs[4].set_xlim(-10,10)
+axs[4].legend(loc=1)
+plt.savefig(SaveFolder+'FWHM_MinMax_Angle.pdf')
+plt.close(fig)
+
 print('Final!')
+# For debugging purposes:
+pdb.set_trace()

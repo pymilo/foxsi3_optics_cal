@@ -3,7 +3,7 @@
 Simple way to fit Three 2D-Gaussians for FOXSI3-SLF Data (Dark corrected)
 ---------------------------------------------------
 
-Goal: To fit Three 2D gaussians to the FOXSI3 SLF data corrected by darks.
+Goal: To fit Three 2D Gaussians to the FOXSI3 SLF data corrected by darks.
 
 Input:  1. Fits file with SLF Data taken with the Andor CCD Camera.
         2. Dark fits files for correction.
@@ -26,6 +26,7 @@ from astropy.io import fits as pyfits
 from ndcube import NDCube
 from astropy.visualization import ImageNormalize, MinMaxInterval, LogStretch, LinearStretch
 from astropy.modeling import models, fitting
+from mpl_toolkits import mplot3d
 import astropy.units as u
 import numpy as np
 import matplotlib.pyplot as plt

@@ -45,6 +45,45 @@ This is another good excuse to have clear and concrete Py files.
 2D Gauss fits
 Data fit
 
+# 03 June 2019
+
+* Following Steven's advice, I organized the current notebook to make it more understanble. I also moved the PY files to a folder called: "00_Explore_2D_Gaussians_Functions_Fits" which contains simple examples of fitting 2D Gaussians.
+
+* Next step: Make a journey path for calibrating the data.
+
+* Make a notebbok and PY-files that work with real data obtained at Marshall.
+
+# 13 June 2013
+
+## Steven meeting
+
+* Move the work we did with Steve to an organized notebook.
+* Add another gaussian, also add offset
+* Define the FWHM function
+* Include the FWHM as a funtion of the azimutal angle. Plot it.
+* include also the HPD. Plot it.
+
+# 26 June 2019
+
+
+* Create One, Two and Three (Done) Gaussians fit. Outcomes: Actual Data, Fit and Differences. Include Chi-Square errors also. 
+* Work on the HPD Function.
+* I need to work of the HPD and the bleeding.
+* Send email!
+
+# July 23, 2019
+
+* I was attending several conferences, one summer school and I was very sick last few weeks. Only today I'm fully functional to resume my work.
+
+* Split Notebooks into smaller pieces. Each section needs to be one individual Notebook. 
+
+
+
+
+
+
+
+
 
 
 
